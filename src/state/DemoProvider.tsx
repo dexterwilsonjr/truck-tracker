@@ -41,8 +41,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Boot is async by design: the snapshot lands once demoApi resolves.
-  // oxlint-disable-next-line react/set-state-in-effect
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- setState fires after the awaited fetch.
     void runBoot()
   }, [runBoot])
 
