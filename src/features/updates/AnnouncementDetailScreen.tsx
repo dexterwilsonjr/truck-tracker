@@ -8,11 +8,13 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { Icon } from "@/components/ui/Icon"
 import { Button } from "@/components/ui/Button"
 import { relativeTime } from "@/utils/time"
+import { useDemoHref } from "@/lib/demo-base"
 
 export function AnnouncementDetailScreen() {
   const { snapshot, actions } = useDemo()
   const { id } = useParams<{ id: string }>()
   const announcement = snapshot.announcements.find((a) => a.id === id)
+  const updatesHref = useDemoHref("/updates")
 
   const alreadyRead = announcement
     ? snapshot.readIds.includes(announcement.id)
@@ -33,7 +35,7 @@ export function AnnouncementDetailScreen() {
           title="Update not found"
           body="This announcement may have been removed, or the link is stale."
           action={
-            <Button to="/updates" variant="secondary">
+            <Button to={updatesHref} variant="secondary">
               Back to updates
             </Button>
           }
@@ -51,7 +53,7 @@ export function AnnouncementDetailScreen() {
   return (
     <article className="mx-auto max-w-2xl space-y-5 motion-safe:animate-fade-up">
       <Link
-        to="/updates"
+        to={updatesHref}
         className="inline-flex h-11 items-center gap-1.5 rounded-full pr-4 text-sm font-semibold text-muted transition hover:bg-white/[0.05] hover:text-ink"
       >
         <Icon name="chevron-left" className="size-4" />

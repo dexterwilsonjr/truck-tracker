@@ -11,7 +11,9 @@ import { ToggleRow } from "@/components/ui/Toggle"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Icon } from "@/components/ui/Icon"
 import { Button } from "@/components/ui/Button"
+import { CrossSell } from "@/features/upsell/CrossSell"
 import { relativeTime } from "@/utils/time"
+import { useDemoHref } from "@/lib/demo-base"
 
 type Filter = "all" | AnnouncementCategory
 
@@ -94,6 +96,8 @@ export function UpdatesScreen() {
             .then(() => flashPrefsSaved(setPrefsSaved))
         }}
       />
+
+      <CrossSell exclude="updates" />
     </div>
   )
 }
@@ -113,9 +117,10 @@ function AnnouncementRow({
   style?: CSSProperties
 }) {
   const category = ANNOUNCEMENT_CATEGORIES[announcement.category]
+  const to = useDemoHref(`/updates/${announcement.id}`)
   return (
     <Link
-      to={`/updates/${announcement.id}`}
+      to={to}
       style={style}
       className={[
         "block rounded-card border p-4 transition sm:p-5",

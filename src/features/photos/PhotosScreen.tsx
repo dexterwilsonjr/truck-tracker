@@ -11,6 +11,8 @@ import { Chip } from "@/components/ui/Primitives"
 import { Icon } from "@/components/ui/Icon"
 import { photoArt, formatFileSize } from "@/features/photos/PhotoArt"
 import { AddPhotosSheet } from "@/features/photos/AddPhotosSheet"
+import { CrossSell } from "@/features/upsell/CrossSell"
+import { useDemoHref } from "@/lib/demo-base"
 
 const FILTERS: { value: PhotoFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -26,6 +28,7 @@ export function PhotosScreen() {
   const [localPhotos, setLocalPhotos] = useState<LocalPhoto[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null)
+  const libraryTo = useDemoHref("/library")
 
   // Revoke object URLs when this screen unmounts.
   const photosRef = useRef<LocalPhoto[]>(localPhotos)
@@ -71,12 +74,17 @@ export function PhotosScreen() {
             to {MAX_SIZE_MB} MB each).
           </p>
         </div>
-        <Button
-          icon={<Icon name="plus" className="size-5" />}
-          onClick={() => setPickerOpen(true)}
-        >
-          Add photos
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            icon={<Icon name="plus" className="size-5" />}
+            onClick={() => setPickerOpen(true)}
+          >
+            Add photos
+          </Button>
+          <Button variant="secondary" to={libraryTo}>
+            Truck Tracker Library
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -178,6 +186,8 @@ export function PhotosScreen() {
         photo={lightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
       />
+
+      <CrossSell exclude="photos" />
     </div>
   )
 }

@@ -27,6 +27,7 @@ export type IconName =
   | "image"
   | "pencil"
   | "bell"
+  | "lock"
 
 export function Icon({
   name,
@@ -181,6 +182,13 @@ function renderPath(name: IconName) {
         <>
           <path d="M12 3.5a5.5 5.5 0 0 1 5.5 5.5v3.6l1.6 2.6a.8.8 0 0 1-.7 1.2H5.6a.8.8 0 0 1-.7-1.2l1.6-2.6V9A5.5 5.5 0 0 1 12 3.5Z" />
           <path d="M10 18a2 2 0 0 0 4 0" />
+        </>
+      )
+    case "lock":
+      return (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
         </>
       )
   }

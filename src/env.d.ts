@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** When "true", the /admin demo route is available in production builds too. */
   readonly VITE_ENABLE_DEMO_ADMIN?: string
+  /** Production API origin. Unset = sales demo (local mock data). */
+  readonly VITE_API_URL?: string
 }
 
 interface ImportMeta {

@@ -1,109 +1,79 @@
 # Truck Tracker
 
-A polished, mobile-first **foundation** for a Tobago Carnival band app. Patrons
-can find the band's truck, read updates, browse event details and preview
-photos — entirely with **mock data** and **local previews**. Nothing here
-connects to paid services or a production backend.
+Tobago Carnival band companion. **Platform V1** is a tenant shell: password
+auth, entitlements, carnival brand, and **upsell screens for every SKU**.
+Live GPS, R2, push, face, print, and Tobago ID wait on their own contracts.
 
-> Working title: **Truck Tracker** (branded `Tobago Carnival` until a real
-> band — Fog Angels, Iconic Mas, … — is chosen).
+The **sales demo** (no `VITE_API_URL`) is the existing polished mock app —
+schematic map, local photos, demo admin. Production with the API set is
+**not** a fake live map: every module shows an upsell until it is entitled
+**and** that package is deployed.
 
-## Run it
+Tagline: **Find the truck. Catch the vibe.**
+
+## Run the sales demo
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-Other scripts:
+## Run Platform V1 (API + upsells)
 
-| Command          | What it does                         |
-| ---------------- | ------------------------------------ |
-| `npm run build`  | Type-check + production build        |
-| `npm run preview`| Serve the production build locally   |
-| `npm run lint`   | oxlint                               |
-
-## Where to change branding
-
-Everything brand-related lives in **one file**: `src/config/brand.ts`.
-
-- `bandName`, `eventYear`, `eventLabel` — the band + event identity.
-- `logoPlaceholder` — swap the gold monogram for the band's real logo.
-- `palette` — colours; applied at runtime as CSS variables (defaults live in
-  `src/index.css`), so every screen re-themes from this single object.
-- `contact` + `registrationUrl` — leave empty to keep buttons in their
-  friendly *"not set up yet"* state, or fill in live destinations.
-- `productName` — the app name in the top bar.
-
-No other band's logos, campaign artwork, sponsors or partnerships are
-invented — placeholders are clearly labelled.
-
-## Where the mock data lives
-
-`src/data/mockData.ts` seeds announcements, truck state, the guide (meet-ups,
-schedules, costume collection, FAQs) and sample gallery placeholders. All are
-marked **sample/placeholder**. Types live in `src/types/models.ts`.
-
-The demo service layer — `src/services/demoApi.ts` — is the only place screens
-read/write data. It fakes network latency and persists non-sensitive demo
-edits (read status, notification prefs, admin text/truck changes) to
-`localStorage` under one key. **"Reset demo data"** (demo admin) wipes it and
-re-seeds the samples.
-
-## What is a demonstration
-
-- **Tracker map** — a schematic SVG with truck + meet-up markers. It is
-  labelled *"Demo map — not a real location"*. A demo control switches
-  Live / Delayed / Signal lost; it never fakes a real GPS fix.
-- **Show my location** — explains it isn't connected; never requests the
-  location permission.
-- **Updates** — seeded announcements; opening one marks it read locally.
-  Notification toggles are saved locally only; push is not connected and no
-  browser permission is requested.
-- **Photos** — sample gradient tiles plus a local-only picker (JPEG/PNG/WebP,
-  10 MB per image, 20 per selection). Selected files stay in memory as object
-  URLs (released on removal/unmount), are never uploaded and never stored in
-  `localStorage`.
-- **Demo admin** (`/admin`, footer link) — announcements, event info, truck
-  status + "Reset demo data". Changes update the patron screens locally.
-  No authentication — do not enter private information. The route is disabled
-  by default in production builds (`src/features/admin/gate.ts`).
-
-## Where the real integrations connect later
-
-| Feature              | Seam                                                            |
-| -------------------- | --------------------------------------------------------------- |
-| Live map + GPS feed  | Replace `src/features/tracker/MapPanel.tsx` internals with a map SDK fed by the tracking service |
-| Band content/API     | Swap `demoApi` bodies for `fetch` calls — signatures stay stable |
-| Authentication       | Not built; admin route stays demo-only until a real auth exists |
-| Push notifications   | `src/features/updates` reads prefs; wire them to a push provider |
-| Photo storage        | Upload flow in `src/features/photos` (local previews today)      |
-
-## Structure
-
-```
-src/
-  components/
-    layout/     app shell, brand bar, bottom navigation
-    ui/         button, card/chip, modal, segmented, toggle, field, icon…
-  config/
-    brand.ts    ← branding single source of truth
-    labels.ts   display labels for model unions
-  data/
-    mockData.ts ← seeded sample content
-  features/
-    tracker/    find-the-truck: map, status card, demo signal control
-    updates/    announcement feed + detail + notification prefs
-    photos/     gallery, filters, lightbox, local add-photos flow
-    guide/      event companion (meet-up, schedule, costume, FAQs, contact)
-    admin/      demo admin preview (gated out of production builds)
-  services/
-    demoApi.ts  ← data-access layer to be replaced by a real API
-  state/        DemoProvider store shared by patron + admin screens
-  types/        typed data models
-  App.tsx       routes
+```bash
+cp .env.example .env
+docker compose up db -d
+npm run seed
+npm run dev:server   # http://127.0.0.1:8787
 ```
 
-Built with React 19 + TypeScript + Vite + Tailwind CSS v4. Mobile-first with a
-centred desktop layout; 4px spacing scale; reduced-motion support; modals
-close with Escape and manage focus; all interactive targets ≥ 44 px.
+In `.env` / Vite: `VITE_API_URL=http://127.0.0.1:8787`, then `npm run dev`.
+
+Seed logins (change these): `platform@localhost` / `changeme` and
+`organizer@localhost` / `changeme`. Band: `/tobago-carnival`.
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Vite SPA |
+| `npm run dev:server` | Hono API |
+| `npm run seed` | Bands, entitlements empty, admin users |
+| `npm run build` | Type-check + production SPA |
+| `npm run lint` | oxlint |
+
+## Brand
+
+Single file: `src/config/brand.ts` (council lock: midnight / gold / teal,
+Space Grotesk + Inter). See `docs/brand.md`.
+
+## Modules (separate contracts)
+
+| Code | V1 | Later |
+| --- | --- | --- |
+| `truck_tracker` | Upsell | FMC920, MapLibre, marshal iPhone fallback |
+| `updates` / `guide` | Upsell | Feed + meet-up |
+| `photos` | Upsell + `/library` | Gallery + Library (R2) |
+| `push` | Upsell | VAPID |
+| `face_mapping` | Upsell | Opt-in match → Library |
+| `print` | Upsell | Partner file + order |
+
+Layout: `src/features/<module>/`, `server/modules/<module>/`, shared
+`src/features/upsell/`, `server/auth`, `server/entitlements`,
+`server/billing`.
+
+Entitlements in Postgres are the **only** runtime switch. Entitled but not
+in `server/modules/deployed.ts` → “Coming online”.
+
+## Docs
+
+- `docs/privacy.md` — also `/privacy` in the app
+- `docs/deploy.md` — Vercel SPA, API, Neon; GPS port only with tracker
+- `docs/fmc920.md` — hardware when tracker is contracted
+- `docs/council-5star.md` — IA, honesty, a11y
+- `docs/stakeholders.md` — who signs what
+- `docs/tobago-id.md` — coming soon on login (disabled)
+
+## Demo vs production admin
+
+Demo `/admin` has **no** auth and is gated out of production builds
+(`src/features/admin/gate.ts`). Live `/:bandSlug/admin` requires a
+password. Platform entitlements: `/platform`.

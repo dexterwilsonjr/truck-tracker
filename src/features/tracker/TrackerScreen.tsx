@@ -11,6 +11,7 @@ import { Segmented } from "@/components/ui/Segmented"
 import { Modal } from "@/components/ui/Modal"
 import { Icon } from "@/components/ui/Icon"
 import { relativeTime } from "@/utils/time"
+import { useDemoHref } from "@/lib/demo-base"
 
 const STATUS_OPTIONS = [
   { value: "live" as const, label: "Live" },
@@ -22,6 +23,8 @@ export function TrackerScreen() {
   const { snapshot, actions } = useDemo()
   const { truck, bandName, eventLabel, announcements } = snapshot
   const [showLocation, setShowLocation] = useState(false)
+  const guideHref = useDemoHref("/guide")
+  const updatesHref = useDemoHref("/updates")
 
   const pinned = announcements
     .filter((a) => a.pinned)
@@ -62,6 +65,7 @@ export function TrackerScreen() {
       {/* Actions */}
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
+          size="lg"
           icon={<Icon name="gps" className="size-5" />}
           onClick={() => setShowLocation(true)}
         >
@@ -69,9 +73,10 @@ export function TrackerScreen() {
         </Button>
         {meeting && (
           <Button
+            size="lg"
             variant="secondary"
             icon={<Icon name="calendar" className="size-5" />}
-            to="/guide"
+            to={guideHref}
           >
             Meeting details
           </Button>
@@ -102,7 +107,7 @@ export function TrackerScreen() {
                     {relativeTime(pinned.publishedAt)}
                   </p>
                   <Link
-                    to={`/updates/${pinned.id}`}
+                    to={`${updatesHref}/${pinned.id}`}
                     className="-my-1.5 mt-1 inline-flex h-11 items-center gap-1 rounded-full pr-2 text-[13px] font-semibold text-gold hover:bg-gold/10"
                   >
                     Read update
@@ -138,7 +143,7 @@ export function TrackerScreen() {
                 variant="secondary"
                 fullWidth
                 className="mt-5"
-                to="/guide"
+                to={guideHref}
                 icon={<Icon name="chevron-right" className="size-4" />}
               >
                 Full schedule & guide
@@ -206,6 +211,13 @@ function TruckStatusCard() {
 
   return (
     <Card className="p-5">
+      <div
+        aria-live={
+          truck.status === "signal-lost" || truck.status === "delayed"
+            ? "assertive"
+            : "polite"
+        }
+      >
       <div className="flex items-center gap-4">
         <span
           className={`grid size-12 shrink-0 place-items-center rounded-2xl ${
@@ -235,6 +247,7 @@ function TruckStatusCard() {
       <p className="mt-4 rounded-2xl border border-line bg-night/40 px-4 py-3 text-[15px] leading-relaxed text-ink">
         {truck.message}
       </p>
+      </div>
     </Card>
   )
 }

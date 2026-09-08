@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /*
- * Truck Tracker design tokens.
- * The values below are the defaults; src/config/brand.ts is the single source
- * of truth for branding and applies its palette at runtime (see installBrand).
+ * Truck Tracker design tokens (council lock).
+ * src/config/brand.ts is the single source of truth and applies its palette
+ * at runtime (see installBrand). Do not add a light theme or a second theme file.
  */
 @theme {
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;

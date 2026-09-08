@@ -1,5 +1,12 @@
 /**
- * Brand configuration — the single place to rebrand this app for a real band.
+ * Brand configuration — council lock for Platform V1.
+ *
+ * Midnight road, brass gold, Caribbean teal. Space Grotesk + Inter.
+ * Tagline: Find the truck. Catch the vibe.
+ * Do not add a light theme, clipart, or a second CSS theme file.
+ *
+ * White-label later: swap bandName, palette, logo here or from the band API
+ * record. Do not fork the component set.
  *
  * To ship Truck Tracker for Fog Angels, Iconic Mas or another band:
  *   1. Change bandName, eventYear and eventLabel.

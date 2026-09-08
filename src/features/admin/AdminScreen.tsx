@@ -9,6 +9,8 @@ import { Card, Chip, Divider, SectionLabel } from "@/components/ui/Primitives"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { relativeTime } from "@/utils/time"
+import { CrossSell } from "@/features/upsell/CrossSell"
+import { useDemoHref } from "@/lib/demo-base"
 
 export function AdminScreen() {
   if (!demoAdminEnabled()) {
@@ -51,6 +53,7 @@ function AdminWorkspace() {
           <ResetPanel />
         </div>
       </div>
+      <CrossSell />
     </div>
   )
 }
@@ -158,6 +161,7 @@ function ResetPanel() {
 }
 
 function AdminDisabled() {
+  const home = useDemoHref("/")
   return (
     <div className="space-y-6 motion-safe:animate-fade-up">
       <Card className="p-6 sm:p-8">
@@ -174,7 +178,7 @@ function AdminDisabled() {
           </code>{" "}
           to preview it in a production build.
         </p>
-        <Button to="/" variant="secondary" className="mt-6">
+        <Button to={home} variant="secondary" className="mt-6">
           Back to tracker
         </Button>
       </Card>

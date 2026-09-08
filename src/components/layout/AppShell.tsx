@@ -5,27 +5,37 @@ import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
 import { LogoMark } from "@/state/DemoProvider"
 import { useDemo } from "@/state/demo-context"
+import { demoHref, useDemoBase, useDemoHref } from "@/lib/demo-base"
 
-const TABS: { to: string; end?: boolean; label: string; icon: IconName }[] = [
-  { to: "/", end: true, label: "Tracker", icon: "map-pin" },
-  { to: "/updates", label: "Updates", icon: "megaphone" },
-  { to: "/photos", label: "Photos", icon: "camera" },
-  { to: "/guide", label: "Guide", icon: "compass" },
+const TAB_PATHS: { path: string; end?: boolean; label: string; icon: IconName }[] = [
+  { path: "/", end: true, label: "Tracker", icon: "map-pin" },
+  { path: "/updates", label: "Updates", icon: "megaphone" },
+  { path: "/photos", label: "Photos", icon: "camera" },
+  { path: "/guide", label: "Guide", icon: "compass" },
 ]
 
 export function AppShell() {
+  const adminTo = useDemoHref("/admin")
+  const accountTo = useDemoHref("/account")
   return (
     <div className="flex min-h-dvh flex-col">
-      <BrandBar />
+      <BrandBar accountTo={accountTo} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-44 pt-5 sm:px-6 md:pt-8">
         <Outlet />
         <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs text-faint">
           <span>
-            Truck Tracker · demo build — real maps, GPS, push notifications and
-            photo uploads connect later.
+            Truck Tracker · sales demo — real maps, GPS, push and uploads
+            wait on their contracts. Production V1 is the branded shell and
+            upsells, not a fake live map.
           </span>
           <Link
-            to="/admin"
+            to="/privacy"
+            className="-my-2 inline-flex h-11 items-center rounded-full px-2.5 underline decoration-dotted underline-offset-4 hover:bg-white/[0.04] hover:text-muted"
+          >
+            Privacy
+          </Link>
+          <Link
+            to={adminTo}
             className="-my-2 inline-flex h-11 items-center rounded-full px-2.5 underline decoration-dotted underline-offset-4 hover:bg-white/[0.04] hover:text-muted"
           >
             Demo admin
@@ -37,7 +47,7 @@ export function AppShell() {
   )
 }
 
-function BrandBar() {
+function BrandBar({ accountTo }: { accountTo: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-night/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -52,9 +62,17 @@ function BrandBar() {
             </p>
           </div>
         </div>
-        <span className="shrink-0 rounded-full border border-line bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-          Live demo
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to={accountTo}
+            className="inline-flex h-11 items-center rounded-full px-3 text-[12px] font-semibold text-muted hover:bg-white/[0.06]"
+          >
+            Account
+          </Link>
+          <span className="rounded-full border border-line bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+            Live demo
+          </span>
+        </div>
       </div>
     </header>
   )
@@ -63,6 +81,7 @@ function BrandBar() {
 function BottomNav() {
   const { snapshot } = useDemo()
   const unread = snapshot.announcements.length - snapshot.readIds.length
+  const base = useDemoBase()
 
   return (
     <nav
@@ -70,10 +89,10 @@ function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
     >
       <div className="mx-auto grid w-full max-w-xl grid-cols-4 gap-1 rounded-[22px] border border-line bg-panel/95 p-1.5 shadow-card backdrop-blur-lg">
-        {TABS.map((tab) => (
+        {TAB_PATHS.map((tab) => (
           <NavLink
-            key={tab.to}
-            to={tab.to}
+            key={tab.path}
+            to={demoHref(base, tab.path)}
             end={tab.end}
             className={({ isActive }) =>
               [

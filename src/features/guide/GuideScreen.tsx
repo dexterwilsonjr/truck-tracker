@@ -9,6 +9,7 @@ import { Segmented } from "@/components/ui/Segmented"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
+import { CrossSell } from "@/features/upsell/CrossSell"
 
 interface ContactChannel {
   key: string
@@ -104,6 +105,15 @@ export function GuideScreen() {
 
       <FaqSection faqs={snapshot.faqs} />
       <ContactSection />
+      <Card className="p-5">
+        <SectionLabel>On the road</SectionLabel>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          This app is assistive. It is not official routing, not 999, and not
+          a substitute for marshals. If the map disagrees with a marshal,
+          follow the marshal. Last-known may be wrong. No guaranteed ETA.
+        </p>
+      </Card>
+      <CrossSell exclude="guide" />
     </div>
   )
 }
