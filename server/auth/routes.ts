@@ -1,205 +1,132 @@
 import { Hono } from "hono"
 import type { Context } from "hono"
-
+import { HTTPException } from "hono/http-exception"
 import { sql } from "../db.ts"
 import type { AppEnv } from "../env.ts"
+import { body, email, string } from "../validation.ts"
 import { sendMail } from "./mailer.ts"
-import {
-  hashPassword,
-  randomToken,
-  sha256,
-  verifyPassword,
-} from "./passwords.ts"
-import {
-  clearSessionCookie,
-  readSessionUserId,
-  setSessionCookie,
-} from "./session.ts"
-
-const RESET_TTL_MS = 60 * 60 * 1000
-const forgotHits = new Map<string, { count: number; windowStart: number }>()
-
+import { hashPassword, randomToken, sha256, verifyPassword } from "./passwords.ts"
+import { clearSessionCookie, readSessionUserId, setSessionCookie, revokeSession } from "./session.ts"
+import { rateLimit } from "./rate-limit.ts"
+import { revokeLocationAccess } from "../modules/friends/privacy.ts"
 export type PlatformRole = "patron" | "platform_admin"
 export type BandMemberRole = "organizer" | "marshal"
-
 export interface SessionUser {
-  id: string
-  email: string
-  name: string
-  platformRole: PlatformRole
+  id: string; email: string; name: string; platformRole: PlatformRole
   bandRoles: { bandId: string; slug: string; role: BandMemberRole }[]
   mustResetPassword: boolean
 }
-
 export type AuthVariables = { env: AppEnv; user: SessionUser | null }
-
 export const auth = new Hono<{ Variables: AuthVariables }>()
+const dummyHash = await hashPassword(randomToken())
 
-auth.post("/register", async (c) => {
-  const env = c.get("env")
-  const body = await c.req.json<{
-    email?: string
-    password?: string
-    name?: string
-  }>()
-  const email = (body.email ?? "").trim().toLowerCase()
-  const password = body.password ?? ""
-  const name = (body.name ?? "").trim()
-  if (!email || !email.includes("@")) {
-    return c.json(
-      { error: { code: "invalid_email", message: "Enter a valid email." } },
-      400,
-    )
-  }
-  if (password.length < 8) {
-    return c.json(
-      { error: { code: "weak_password", message: "Use at least 8 characters." } },
-      400,
-    )
-  }
-  const existing = await sql<{ id: string }[]>`
-    SELECT id FROM users WHERE email = ${email}
-  `
-  if (existing[0]) {
-    return c.json(
-      {
-        error: {
-          code: "email_taken",
-          message: "That email already has an account.",
-        },
-      },
-      409,
-    )
-  }
-  const passwordHash = await hashPassword(password)
-  const rows = await sql<{ id: string }[]>`
-    INSERT INTO users (email, password_hash, name, platform_role)
-    VALUES (${email}, ${passwordHash}, ${name}, 'patron')
-    RETURNING id
-  `
-  const userId = rows[0]?.id
-  if (!userId) {
-    return c.json(
-      { error: { code: "register_failed", message: "Could not create account." } },
-      500,
-    )
-  }
-  setSessionCookie(c, env, userId)
-  const user = await loadSessionUser(userId)
-  return c.json({ user })
+async function signIn(c: Context<{ Variables: AuthVariables }>, id: string, expectedHash?: string) {
+  await revokeSession(c, c.get("env"))
+  await setSessionCookie(c, c.get("env"), id, expectedHash)
+  return c.json({ user: await loadSessionUser(id) })
+}
+auth.post("/register", async c => {
+  const data = await body(c)
+  const address = email(data.email)
+  const password = string(data.password, "Password", 12, 128)
+  const name = string(data.name ?? "", "Name", 0, 100).trim()
+  await rateLimit(c, "register", address, 5)
+  const hash = await hashPassword(password)
+  const rows = await sql<{ id: string }[]>`INSERT INTO users (email, password_hash, name)
+    VALUES (${address}, ${hash}, ${name}) ON CONFLICT (email) DO NOTHING RETURNING id`
+  if (!rows[0]) throw new HTTPException(409, { message: "That email already has an account." })
+  return signIn(c, rows[0].id, hash)
 })
-
-auth.post("/login", async (c) => {
-  const env = c.get("env")
-  const body = await c.req.json<{ email?: string; password?: string }>()
-  const email = (body.email ?? "").trim().toLowerCase()
-  const password = body.password ?? ""
-  const rows = await sql<
-    { id: string; password_hash: string }[]
-  >`
-    SELECT id, password_hash FROM users WHERE email = ${email}
-  `
+auth.post("/login", async c => {
+  const data = await body(c)
+  const address = email(data.email)
+  const password = string(data.password, "Password", 1, 128)
+  await rateLimit(c, "login", address)
+  const rows = await sql<{ id: string; password_hash: string }[]>`SELECT id, password_hash FROM users WHERE email = ${address}`
   const row = rows[0]
-  const ok = row ? await verifyPassword(password, row.password_hash) : false
-  if (!row || !ok) {
-    return c.json(
-      {
-        error: {
-          code: "invalid_credentials",
-          message: "Email or password is wrong.",
-        },
-      },
-      401,
-    )
-  }
-  setSessionCookie(c, env, row.id)
-  const user = await loadSessionUser(row.id)
-  return c.json({ user })
+  const valid = await verifyPassword(password, row?.password_hash ?? dummyHash)
+  if (!row || !valid) throw new HTTPException(401, { message: "Email or password is wrong." })
+  return signIn(c, row.id, row.password_hash)
 })
-
-auth.post("/logout", (c) => {
-  const env = c.get("env")
-  clearSessionCookie(c, env)
+auth.post("/logout", async c => {
+  const userId = await readSessionUserId(c, c.get("env"))
+  await revokeSession(c, c.get("env"))
+  // Logging out must withdraw location access, not just stop the app polling:
+  // it ends sharing, deletes the stored position, and revokes device tokens.
+  // Without this the last position would stay visible to friends for the whole
+  // freshness window, and an enrolled phone could keep posting.
+  if (userId) await revokeLocationAccess(userId)
   return c.json({ ok: true })
 })
-
-auth.get("/me", async (c) => {
-  const env = c.get("env")
-  const userId = readSessionUserId(c, env)
-  if (!userId) return c.json({ user: null })
-  const user = await loadSessionUser(userId)
-  return c.json({ user })
+auth.get("/me", async c => {
+  const id = await readSessionUserId(c, c.get("env"))
+  return c.json({ user: id ? await loadSessionUser(id) : null })
 })
-
-auth.post("/forgot", async (c) => {
-  const env = c.get("env")
-  const body = await c.req.json<{ email?: string }>()
-  const email = (body.email ?? "").trim().toLowerCase()
-  if (!allowForgot(email)) {
-    return c.json({ ok: true })
+auth.post("/forgot", async c => {
+  const data = await body(c)
+  const address = email(data.email)
+  try { await rateLimit(c, "forgot", address, 5) } catch (error) {
+    if (error instanceof HTTPException && error.status === 429) return c.json({ ok: true })
+    throw error
   }
-  const rows = await sql<{ id: string; name: string }[]>`
-    SELECT id, name FROM users WHERE email = ${email}
-  `
-  const row = rows[0]
-  if (row) {
+  const rows = await sql<{ id: string }[]>`SELECT id FROM users WHERE email = ${address}`
+  if (rows[0]) {
     const token = randomToken()
-    await sql`
-      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-      VALUES (${row.id}::uuid, ${sha256(token)}, ${new Date(Date.now() + RESET_TTL_MS)})
-    `
-    const link = `${env.frontendOrigin}/reset?token=${token}`
-    await sendMail(env, {
-      to: email,
-      subject: "Reset your Truck Tracker password",
-      text: `Hi${row.name ? ` ${row.name}` : ""},\n\nUse this link within an hour to set a new password:\n${link}\n\nIf you did not ask for this, ignore the email.`,
-    })
+    await sql`INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      VALUES (${rows[0].id}::uuid, ${sha256(token)}, now() + interval '1 hour')`
+    try {
+      await sendMail(c.get("env"), { to: address, subject: "Reset your Truck Tracker password",
+        text: `Set a new password within one hour: ${c.get("env").frontendOrigin}/reset?token=${token}` })
+    } catch {
+      // Preserve the same public response whether the account exists or not.
+      console.error("Password recovery delivery failed")
+    }
   }
   return c.json({ ok: true })
 })
-
-auth.post("/reset", async (c) => {
-  const env = c.get("env")
-  const body = await c.req.json<{ token?: string; password?: string }>()
-  const token = body.token ?? ""
-  const password = body.password ?? ""
-  if (password.length < 8) {
-    return c.json(
-      { error: { code: "weak_password", message: "Use at least 8 characters." } },
-      400,
-    )
-  }
-  const tokenHash = sha256(token)
-  const rows = await sql<{ id: string; user_id: string }[]>`
-    SELECT id, user_id FROM password_reset_tokens
-    WHERE token_hash = ${tokenHash}
-      AND used_at IS NULL
-      AND expires_at > now()
-  `
-  const row = rows[0]
-  if (!row) {
-    return c.json(
-      {
-        error: {
-          code: "invalid_token",
-          message: "That reset link is expired or already used.",
-        },
-      },
-      400,
-    )
-  }
-  const passwordHash = await hashPassword(password)
-  await sql`
-    UPDATE users
-    SET password_hash = ${passwordHash}, must_reset_password = false
-    WHERE id = ${row.user_id}::uuid
-  `
-  await sql`
-    UPDATE password_reset_tokens SET used_at = now() WHERE id = ${row.id}::uuid
-  `
-  setSessionCookie(c, env, row.user_id)
-  const user = await loadSessionUser(row.user_id)
-  return c.json({ user })
+auth.post("/reset", async c => {
+  const data = await body(c)
+  const token = string(data.token, "Reset token", 64, 64)
+  const password = string(data.password, "Password", 12, 128)
+  await rateLimit(c, "reset", sha256(token))
+  const hash = await hashPassword(password)
+  const id = await sql.begin(async tx => {
+    // Lock the user before tokens, so different tokens for one user serialize.
+    const users = await tx<{ id: string }[]>`SELECT u.id FROM users u
+      JOIN password_reset_tokens t ON t.user_id = u.id
+      WHERE t.token_hash = ${sha256(token)} FOR UPDATE OF u`
+    if (!users[0]) throw new HTTPException(400, { message: "That reset link is expired or already used." })
+    const used = await tx<{ user_id: string }[]>`UPDATE password_reset_tokens SET used_at = now()
+      WHERE token_hash = ${sha256(token)} AND used_at IS NULL AND expires_at > now() RETURNING user_id`
+    if (!used[0]) throw new HTTPException(400, { message: "That reset link is expired or already used." })
+    const userId = used[0].user_id
+    await tx`UPDATE users SET password_hash = ${hash}, must_reset_password = false WHERE id = ${userId}::uuid`
+    await tx`UPDATE password_reset_tokens SET used_at = now() WHERE user_id = ${userId}::uuid AND used_at IS NULL`
+    await tx`DELETE FROM sessions WHERE user_id = ${userId}::uuid`
+    return userId
+  })
+  // A password reset is a security event: withdraw location access entirely.
+  await revokeLocationAccess(id)
+  return signIn(c, id, hash)
+})
+auth.post("/change-password", async c => {
+  const user = await requireUser(c)
+  if (user instanceof Response) return user
+  const data = await body(c)
+  const old = string(data.currentPassword, "Current password", 1, 128)
+  const password = string(data.password, "New password", 12, 128)
+  if (old === password) throw new HTTPException(400, { message: "Choose a different password." })
+  await rateLimit(c, "change-password", user.id)
+  const hash = await hashPassword(password)
+  await sql.begin(async tx => {
+    const rows = await tx<{ password_hash: string }[]>`SELECT password_hash FROM users WHERE id = ${user.id}::uuid FOR UPDATE`
+    if (!rows[0] || !await verifyPassword(old, rows[0].password_hash)) throw new HTTPException(401, { message: "Current password is wrong." })
+    await tx`UPDATE users SET password_hash = ${hash}, must_reset_password = false WHERE id = ${user.id}::uuid`
+    await tx`DELETE FROM sessions WHERE user_id = ${user.id}::uuid`
+    await tx`UPDATE password_reset_tokens SET used_at = now() WHERE user_id = ${user.id}::uuid AND used_at IS NULL`
+  })
+  await revokeLocationAccess(user.id)
+  return signIn(c, user.id, hash)
 })
 
 export async function loadSessionUser(
@@ -245,7 +172,7 @@ export async function requireUser(
   c: Context<{ Variables: AuthVariables }>,
 ): Promise<SessionUser | Response> {
   const env = c.get("env")
-  const userId = readSessionUserId(c, env)
+  const userId = await readSessionUserId(c, env)
   if (!userId) {
     return c.json(
       { error: { code: "unauthenticated", message: "Sign in to continue." } },
@@ -259,6 +186,9 @@ export async function requireUser(
       { error: { code: "unauthenticated", message: "Sign in to continue." } },
       401,
     )
+  }
+  if (user.mustResetPassword && !c.req.path.endsWith("/auth/change-password")) {
+    return c.json({ error: { code: "password_change_required", message: "Change your temporary password to continue." } }, 403)
   }
   c.set("user", user)
   return user
@@ -274,17 +204,4 @@ export function isOrganizerFor(user: SessionUser, bandId: string): boolean {
 export function isBandOrganizer(user: SessionUser, bandId: string): boolean {
   if (user.platformRole === "platform_admin") return true
   return user.bandRoles.some((m) => m.bandId === bandId && m.role === "organizer")
-}
-
-function allowForgot(email: string): boolean {
-  if (!email) return true
-  const now = Date.now()
-  const hit = forgotHits.get(email)
-  if (!hit || now - hit.windowStart > 15 * 60 * 1000) {
-    forgotHits.set(email, { count: 1, windowStart: now })
-    return true
-  }
-  if (hit.count >= 5) return false
-  hit.count += 1
-  return true
 }

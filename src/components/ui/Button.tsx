@@ -61,6 +61,8 @@ type ButtonAsButton = ButtonBase & {
 
 type ButtonAsLink = ButtonBase & {
   to: string
+  /** Router state, so a sign-in redirect can return the user where they were. */
+  state?: Record<string, unknown>
   href?: undefined
   onClick?: undefined
   disabled?: undefined
@@ -95,7 +97,7 @@ export function Button(props: ButtonProps) {
 
   if ("to" in props && props.to) {
     return (
-      <Link to={props.to} className={cls}>
+      <Link to={props.to} state={props.state} className={cls}>
         {icon}
         {children}
       </Link>

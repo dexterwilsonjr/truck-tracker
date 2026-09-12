@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 import type { ModuleCode } from "@/config/modules"
 import { UpsellScreen } from "@/features/upsell/UpsellScreen"
-import { useBand } from "@/state/BandProvider"
+import { useBand } from "@/state/band-context"
 
 /**
  * V1: every SKU renders the upsell unless entitled and the package is in

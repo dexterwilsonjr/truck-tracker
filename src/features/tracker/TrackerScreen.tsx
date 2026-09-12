@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
 
 import { MapPanel } from "@/features/tracker/MapPanel"
+import { brand } from "@/config/brand"
 import { useDemo } from "@/state/demo-context"
 import { TRUCK_STATUS_META } from "@/config/labels"
 import { Card, Chip, SectionLabel } from "@/components/ui/Primitives"
@@ -10,8 +11,9 @@ import { Button } from "@/components/ui/Button"
 import { Segmented } from "@/components/ui/Segmented"
 import { Modal } from "@/components/ui/Modal"
 import { Icon } from "@/components/ui/Icon"
+import { BrandHero } from "@/components/brand/BrandVisuals"
 import { relativeTime } from "@/utils/time"
-import { useDemoHref } from "@/lib/demo-base"
+import { useDemoHref } from "@/lib/demo-paths"
 
 const STATUS_OPTIONS = [
   { value: "live" as const, label: "Live" },
@@ -42,17 +44,20 @@ export function TrackerScreen() {
             {bandName} · {eventLabel}
           </p>
           <h1 className="mt-1.5 font-display text-[34px] leading-none font-bold tracking-tight text-balance sm:text-4xl">
-            Find the truck
+            {brand.heroTitle}
           </h1>
           <p className="mt-2.5 max-w-md text-[15px] leading-relaxed text-muted">
             Follow {truck.truckName}, read the latest word and get to the
             meet-up on time.
           </p>
         </div>
-        <Chip tone="gold" dot={false}>
-          Prototype build
-        </Chip>
+        {brand.id === "original" && (
+          <Chip tone="gold" dot={false}>
+            Prototype build
+          </Chip>
+        )}
       </header>
+      <BrandHero alt={bandName} />
 
       {/* Map */}
       <section

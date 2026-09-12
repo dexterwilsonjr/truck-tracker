@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { Icon } from "@/components/ui/Icon"
 import { Button } from "@/components/ui/Button"
 import { relativeTime } from "@/utils/time"
-import { useDemoHref } from "@/lib/demo-base"
+import { useDemoHref } from "@/lib/demo-paths"
 
 export function AnnouncementDetailScreen() {
   const { snapshot, actions } = useDemo()

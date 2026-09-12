@@ -1,13 +1,13 @@
 # Truck Tracker
 
-Tobago Carnival band companion. **Platform V1** is a tenant shell: password
-auth, entitlements, carnival brand, and **upsell screens for every SKU**.
-Live GPS, R2, push, face, print, and Tobago ID wait on their own contracts.
+Tobago Carnival band companion. **1.2** adds MapLibre tracking from a crew
+phone, authenticated sharing controls, read-only Updates and Guide, and account
+security improvements. R2, push, face matching, print, FMC920 ingestion and Tobago
+ID remain future packages.
 
-The **sales demo** (no `VITE_API_URL`) is the existing polished mock app —
-schematic map, local photos, demo admin. Production with the API set is
-**not** a fake live map: every module shows an upsell until it is entitled
-**and** that package is deployed.
+With `VITE_API_URL` unset, the local sales demo uses mock data. With the API
+configured, entitled and deployed modules use the live 1.2 implementation.
+See [release evidence](docs/release-1.2.md) for deployment status.
 
 Tagline: **Find the truck. Catch the vibe.**
 
@@ -18,39 +18,57 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-## Run Platform V1 (API + upsells)
+## Run 1.2 locally
 
 ```bash
 cp .env.example .env
 docker compose up db -d
+# Edit .env: set unique seed passwords of at least 12 characters.
 npm run seed
 npm run dev:server   # http://127.0.0.1:8787
 ```
 
-In `.env` / Vite: `VITE_API_URL=http://127.0.0.1:8787`, then `npm run dev`.
+In `.env` / Vite: `VITE_API_URL=http://127.0.0.1:8787/api`, then `npm run dev`.
 
-Seed logins (change these): `platform@localhost` / `changeme` and
-`organizer@localhost` / `changeme`. Band: `/tobago-carnival`.
+Seed account emails and passwords come from your `.env`; credentials are never
+printed. Reseeding preserves existing passwords. Band: `/tobago-carnival` (or `/fog-angels` when that skin is applied).
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Vite SPA |
 | `npm run dev:server` | Hono API |
-| `npm run seed` | Bands, entitlements empty, admin users |
+| `npm run seed` | Band, phone tracker, public content and admin users |
+| `npm run brand` | Provision a client band (`<clientId>` from `src/config/clients.ts`) |
 | `npm run build` | Type-check + production SPA |
 | `npm run lint` | oxlint |
+| `npm run build:live` | Firebase build, original brand |
+| `npm run build:live:fog` | Firebase build, Fog Angels skin |
+| `npm run check` | API tests, lint and live build |
+| `npm run test:e2e` | Browser and two-session GPS checks |
 
-## Brand
+## Brand and clients
 
-Single file: `src/config/brand.ts` (council lock: midnight / gold / teal,
-Space Grotesk + Inter). See `docs/brand.md`.
+Every client band is one entry in `src/config/clients.ts`: a brand pack, an app name, and the
+bundle identifier that a Transistorsoft licence key is bound to.
+
+To add a paying band:
+
+1. Add `src/config/brands/<id>.ts` with the palette, logo, fonts, contact, guide, updates and meetup.
+2. Register it in `src/config/clients.ts` with its `appName` and `appId`.
+3. Put icon, splash and imagery in `public/brands/<id>/`.
+4. `npm run brand -- <id>` to provision the band row, truck, content and entitlements. Idempotent.
+5. `VITE_BRAND=<id> npm run build:live` for that client's bundle.
+
+One repository, one API, one database. A second band is never a second deployment.
+
+Default (unset `VITE_BRAND`): Truck Tracker / Tobago Carnival. See `docs/brand.md` and `docs/demo.md`.
 
 ## Modules (separate contracts)
 
-| Code | V1 | Later |
+| Code | 1.2 | Later |
 | --- | --- | --- |
-| `truck_tracker` | Upsell | FMC920, MapLibre, marshal iPhone fallback |
-| `updates` / `guide` | Upsell | Feed + meet-up |
+| `truck_tracker` | MapLibre + crew phone GPS | FMC920 ingestion |
+| `updates` / `guide` | Seeded read-only content | Organizer content editing |
 | `photos` | Upsell + `/library` | Gallery + Library (R2) |
 | `push` | Upsell | VAPID |
 | `face_mapping` | Upsell | Opt-in match → Library |
@@ -66,7 +84,9 @@ in `server/modules/deployed.ts` → “Coming online”.
 ## Docs
 
 - `docs/privacy.md` — also `/privacy` in the app
-- `docs/deploy.md` — Vercel SPA, API, Neon; GPS port only with tracker
+- `docs/demo.md` — Firebase/Cloud Run deployment and two-phone acceptance
+- `docs/release-1.2.md` — verification evidence and outstanding gates
+- `docs/deploy.md` — historical V1 deployment notes
 - `docs/fmc920.md` — hardware when tracker is contracted
 - `docs/council-5star.md` — IA, honesty, a11y
 - `docs/stakeholders.md` — who signs what

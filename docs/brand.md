@@ -26,3 +26,23 @@ Display: **Space Grotesk**. Body: **Inter**. Cards: `--radius-card` 1.25rem. Bot
 Voice: short Trinidad English, present tense. Never “SKU” or “enable module” to patrons.
 
 Product name: **Truck Tracker**. Tagline: **Find the truck. Catch the vibe.**
+
+## Clients
+
+Every band is one entry in `src/config/clients.ts`, which pairs a brand pack with the
+app identity (display name and bundle identifier) that a Transistorsoft licence key binds to.
+Bands are data, not deployments: one repository, one API, one database serve all of them.
+
+Adding a paying band:
+
+1. Add `src/config/brands/<id>.ts` for the palette, logo, fonts, copy and meetup.
+2. Register it in `src/config/clients.ts`. Keep `appId` final, because licence keys cannot be
+   re-bound to a different identifier without a regeneration request.
+3. Add icon and splash assets under `public/brands/<id>/`.
+4. Run `npm run brand -- <id>`. It upserts the band row (including the full skin in
+   `bands.brand`), the truck, the content, and an entitlement per deployed module. Re-running is
+   safe and is the normal pre-event step.
+5. Build that client with `VITE_BRAND=<id> npm run build:live`.
+
+The original tokens above remain the default when `VITE_BRAND` is unset.
+See [demo.md](demo.md) to switch the live site and switch it back.

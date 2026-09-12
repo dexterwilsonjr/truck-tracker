@@ -1,12 +1,15 @@
+import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { useAuth } from "@/state/AuthProvider"
-import { useOptionalBand } from "@/state/BandProvider"
+import { useAuth } from "@/state/auth-context"
+import { useOptionalBand } from "@/state/band-context"
 import { bandHref } from "@/lib/paths"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Primitives"
 
 export function AccountScreen() {
+  const [error, setError] = useState("")
+  const [busy, setBusy] = useState(false)
   const { user, logout } = useAuth()
   const band = useOptionalBand()
   const navigate = useNavigate()
@@ -37,12 +40,7 @@ export function AccountScreen() {
       </header>
       <Card className="p-5">
         <p className="text-sm text-muted">{user.email}</p>
-        {user.mustResetPassword && (
-          <p className="mt-3 text-sm text-warn">
-            An admin set a temporary password. Change it from Forgot password
-            after you sign out, or keep using this one until you do.
-          </p>
-        )}
+        <Button to="/change-password" variant="secondary" className="mt-4">Change password</Button>
         {user.platformRole === "platform_admin" && (
           <Button to="/platform" variant="secondary" className="mt-4">
             Platform admin
@@ -55,12 +53,15 @@ export function AccountScreen() {
           Privacy
         </Link>
       </Card>
+      {error && <p role="alert">{error}</p>}
       <Button
+        busy={busy}
         size="lg"
         fullWidth
         variant="danger"
         onClick={() => {
-          void logout().then(() => navigate(home))
+          setBusy(true); setError("")
+          void logout().then(() => navigate(home)).catch(e => setError(e.message)).finally(() => setBusy(false))
         }}
       >
         Log out

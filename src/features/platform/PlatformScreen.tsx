@@ -5,7 +5,7 @@ import { Navigate } from "react-router-dom"
 import { MODULE_CODES } from "@/config/modules"
 import type { ModuleCode } from "@/config/modules"
 import { MODULE_TITLES } from "@/features/upsell/catalog"
-import { useAuth } from "@/state/AuthProvider"
+import { useAuth } from "@/state/auth-context"
 import { api } from "@/services/api"
 import { Button } from "@/components/ui/Button"
 import { Card, Chip } from "@/components/ui/Primitives"
@@ -28,6 +28,14 @@ interface PlatformUser {
 
 export function PlatformScreen() {
   const { user, ready } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [bandPage, setBandPage] = useState(0)
+  const [userPage, setUserPage] = useState(0)
+  const [moreBands, setMoreBands] = useState(false)
+  const [moreUsers, setMoreUsers] = useState(false)
+  const [requests, setRequests] = useState<{ band_name: string; module_code: string; email: string }[]>([])
+  const [requestPage, setRequestPage] = useState(0)
+  const [moreRequests, setMoreRequests] = useState(false)
   const [bands, setBands] = useState<PlatformBand[]>([])
   const [users, setUsers] = useState<PlatformUser[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -35,16 +43,21 @@ export function PlatformScreen() {
 
   useEffect(() => {
     if (!user || user.platformRole !== "platform_admin") return
+    const controller = new AbortController()
     void Promise.all([
-      api<{ bands: PlatformBand[] }>("/platform/bands"),
-      api<{ users: PlatformUser[] }>("/platform/users"),
+      api<{ bands: PlatformBand[]; hasMore: boolean }>(`/platform/bands?page=${bandPage}`, { signal: controller.signal }),
+      api<{ users: PlatformUser[]; hasMore: boolean }>(`/platform/users?page=${userPage}`, { signal: controller.signal }),
+      api<{ requests: typeof requests; hasMore: boolean }>(`/platform/requests?page=${requestPage}`, { signal: controller.signal }),
     ])
-      .then(([b, u]) => {
+      .then(([b, u, r]) => {
+        if (controller.signal.aborted) return
+        setMoreBands(b.hasMore); setMoreUsers(u.hasMore); setRequests(r.requests); setMoreRequests(r.hasMore)
         setBands(b.bands)
         setUsers(u.users)
       })
-      .catch((err: Error) => setError(err.message))
-  }, [user])
+      .catch((err: Error) => { if (!controller.signal.aborted) setError(err.message) })
+    return () => controller.abort()
+  }, [user, bandPage, userPage, requestPage])
 
   if (!ready) return null
   if (!user) return <Navigate to="/login" state={{ next: "/platform" }} replace />
@@ -57,6 +70,10 @@ export function PlatformScreen() {
     )
   }
 
+  async function run(action: () => Promise<void>) {
+    setBusy(true); setError(null)
+    try { await action() } catch (e) { setError(e instanceof Error ? e.message : "Could not save.") } finally { setBusy(false) }
+  }
   async function toggle(band: PlatformBand, code: ModuleCode, on: boolean) {
     if (on) {
       await api(`/platform/bands/${band.id}/entitlements`, {
@@ -68,7 +85,7 @@ export function PlatformScreen() {
         method: "DELETE",
       })
     }
-    const data = await api<{ bands: PlatformBand[] }>("/platform/bands")
+    const data = await api<{ bands: PlatformBand[]; hasMore: boolean }>(`/platform/bands?page=${bandPage}`)
     setBands(data.bands)
   }
 
@@ -124,7 +141,8 @@ export function PlatformScreen() {
                     )}
                     <Button
                       variant={entitled ? "secondary" : "primary"}
-                      onClick={() => void toggle(band, code, !entitled)}
+                      busy={busy}
+                      onClick={() => void run(() => toggle(band, code, !entitled))}
                     >
                       {entitled ? "Revoke" : "Activate"}
                     </Button>
@@ -136,10 +154,11 @@ export function PlatformScreen() {
         </Card>
       ))}
 
+      <div className="flex gap-3"><Button disabled={bandPage === 0 || busy} onClick={() => setBandPage(p => p - 1)}>Previous bands</Button><Button disabled={!moreBands || busy} onClick={() => setBandPage(p => p + 1)}>Next bands</Button></div>
       <section>
         <h2 className="font-display text-xl font-bold">Users</h2>
         <p className="mt-1 text-sm text-muted">
-          Set a temporary password. They should change it after sign-in.
+          Set a temporary password. They must change it after sign-in.
         </p>
         <ul className="mt-4 space-y-2">
           {users.map((row) => (
@@ -156,13 +175,15 @@ export function PlatformScreen() {
                   </p>
                 )}
               </div>
-              <Button variant="secondary" onClick={() => void resetPassword(row.id)}>
+              <Button variant="secondary" busy={busy} onClick={() => void run(() => resetPassword(row.id))}>
                 Reset password
               </Button>
             </li>
           ))}
         </ul>
+        <div className="mt-4 flex gap-3"><Button disabled={userPage === 0 || busy} onClick={() => setUserPage(p => p - 1)}>Previous users</Button><Button disabled={!moreUsers || busy} onClick={() => setUserPage(p => p + 1)}>Next users</Button></div>
       </section>
+      <section><h2 className="font-display text-xl font-bold">Feature requests</h2><ul className="mt-4 space-y-3">{requests.map(r => <li key={`${r.band_name}:${r.module_code}`}>{r.band_name} · {r.module_code} · {r.email}</li>)}</ul><div className="mt-4 flex gap-3"><Button disabled={requestPage === 0} onClick={() => setRequestPage(p => p - 1)}>Previous requests</Button><Button disabled={!moreRequests} onClick={() => setRequestPage(p => p + 1)}>Next requests</Button></div></section>
     </div>
   )
 }

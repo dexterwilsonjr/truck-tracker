@@ -1,0 +1,53 @@
+QUOTATION DETAILS — WINDIES MEDIA LTD. TO FOG ANGELS LTD.
+
+Project: Fog Angels Carnival companion application
+Base development and Carnival delivery package: TT$15,000
+The items below form one package; they are not additional charges.
+
+INCLUDED LINE ITEMS
+
+1. Application design and Fog Angels branding
+   Mobile-friendly web application with Fog Angels branding, responsive layouts and clear navigation.
+
+2. Find Your Friend
+   Permission-based location sharing between invited/approved friends, a map view of participating friends, and controls to stop sharing. Location sharing is limited to the agreed event use; people are not publicly discoverable by default.
+
+3. Find a Truck
+   Live truck map, authorized crew location sharing, last-update information, delayed/signal-lost indicators, and controls to start and end public tracking.
+
+4. Push Notifications
+   Organizer controls for sending event announcements and alerts to users who have opted in, including notification permission setup for supported devices and browsers.
+
+5. Photo Gallery
+   Event photo gallery with authorized upload/management, mobile browsing and full-image viewing. Optional AI face matching is a separately priced tenant add-on, as described below.
+
+6. Administration, testing and deployment
+   Authorized organizer/crew access, setup of the agreed features, functional testing, deployment and an organizer handover/walkthrough.
+
+7. Hosting for Carnival
+   Application hosting for the agreed Carnival period is included in the TT$15,000 package, within the user, traffic and storage capacity agreed for that event.
+
+8. Event-day technical support
+   Technical support for the agreed event day and agreed support hours is included in the TT$15,000 package.
+
+PAYMENT MILESTONES
+
+50% down payment on acceptance / before commencement: TT$7,500
+30% on delivery of the completed application against the agreed feature scope: TT$4,500
+20% on event day: TT$3,000
+Total: TT$15,000
+
+ADDITIONAL CHARGES — OUTSIDE THE TT$15,000 PACKAGE
+
+- Optional AI face matching: activation/integration for the Fog Angels tenant is quoted separately. This enables consenting users to find potential photos of themselves within the event gallery.
+- AI credits and processing: no AI credit allowance or unlimited AI usage is included. Matching, indexing and any other AI processing are charged under an agreed credit package or usage rate, with a spending limit approved before activation.
+- Additional AI implementation, custom workflows, integrations or features beyond the agreed scope are separately quoted before work begins.
+- Post-Carnival hosting is charged separately under an agreed hosting/maintenance arrangement. The included hosting period ends on the agreed date; continued hosting is not included indefinitely.
+
+CLARIFICATIONS TO SET BEFORE ISSUING THE QUOTATION
+
+Confirm VAT treatment; Carnival hosting start/end dates; event-day support hours and delivery mode; expected users and number of trucks; gallery storage/retention; delivery/acceptance date; and rates for optional AI and post-Carnival hosting. Do not describe the service as unlimited unless a specific unlimited item is intentionally offered.
+
+DELIVERY NOTE FOR WINDIES MEDIA (not a quotation line item)
+
+The current demo has live phone-based truck tracking and a curated brand-image preview. Find Your Friend, push notifications, the production upload gallery and optional AI face matching must be included in the delivery checklist; do not describe them as already implemented based on the current demo alone.

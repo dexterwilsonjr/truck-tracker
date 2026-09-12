@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import {
   createBrowserRouter,
   Navigate,
@@ -10,15 +10,17 @@ import {
 
 import { AppShell } from "@/components/layout/AppShell"
 import { LiveAppShell } from "@/components/layout/LiveAppShell"
-import { TrackerScreen } from "@/features/tracker/TrackerScreen"
-import { UpdatesScreen } from "@/features/updates/UpdatesScreen"
-import { AnnouncementDetailScreen } from "@/features/updates/AnnouncementDetailScreen"
-import { PhotosScreen } from "@/features/photos/PhotosScreen"
-import { GuideScreen } from "@/features/guide/GuideScreen"
-import { AdminScreen } from "@/features/admin/AdminScreen"
-import { OrganizerAdminScreen } from "@/features/admin/OrganizerAdminScreen"
+const TrackerScreen = lazy(() => import("@/features/tracker/TrackerScreen").then(m => ({ default: m.TrackerScreen })))
+const UpdatesScreen = lazy(() => import("@/features/updates/UpdatesScreen").then(m => ({ default: m.UpdatesScreen })))
+const AnnouncementDetailScreen = lazy(() => import("@/features/updates/AnnouncementDetailScreen").then(m => ({ default: m.AnnouncementDetailScreen })))
+const PhotosScreen = lazy(() => import("@/features/photos/PhotosScreen").then(m => ({ default: m.PhotosScreen })))
+const GuideScreen = lazy(() => import("@/features/guide/GuideScreen").then(m => ({ default: m.GuideScreen })))
+const AdminScreen = lazy(() => import("@/features/admin/AdminScreen").then(m => ({ default: m.AdminScreen })))
+const OrganizerAdminScreen = lazy(() => import("@/features/admin/OrganizerAdminScreen").then(m => ({ default: m.OrganizerAdminScreen })))
 import { RequireOrganizer } from "@/features/admin/RequireOrganizer"
 import { DemoProvider } from "@/state/DemoProvider"
+import { ChangePasswordScreen } from "@/features/auth/ChangePasswordScreen"
+import { useAuth } from "@/state/auth-context"
 import { AuthProvider } from "@/state/AuthProvider"
 import { BandProvider } from "@/state/BandProvider"
 import { DemoBaseProvider } from "@/lib/demo-base"
@@ -30,10 +32,14 @@ import { ForgotScreen } from "@/features/auth/ForgotScreen"
 import { ResetScreen } from "@/features/auth/ResetScreen"
 import { AccountScreen } from "@/features/account/AccountScreen"
 import { PrivacyScreen } from "@/features/legal/PrivacyScreen"
-import { PlatformScreen } from "@/features/platform/PlatformScreen"
+const PlatformScreen = lazy(() => import("@/features/platform/PlatformScreen").then(m => ({ default: m.PlatformScreen })))
 import { HomeRedirect } from "@/features/bands/HomeRedirect"
 import { ModulePage } from "@/features/upsell/ModulePage"
 import { ModuleUpsellRoute, UpsellScreen } from "@/features/upsell/UpsellScreen"
+
+const LiveTrackerScreen = lazy(() => import("@/features/tracker/LiveTrackerScreen").then(m => ({ default: m.LiveTrackerScreen })))
+const FriendsScreen = lazy(() => import("@/features/friends/FriendsScreen").then(m => ({ default: m.FriendsScreen })))
+const LiveContentScreen = lazy(() => import("@/features/content/LiveContentScreen").then(m => ({ default: m.LiveContentScreen })))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -44,6 +50,9 @@ function ScrollToTop() {
 }
 
 function RootLayout() {
+  const { user } = useAuth()
+  const { pathname } = useLocation()
+  if (user?.mustResetPassword && pathname !== "/change-password") return <Navigate to="/change-password" replace />
   return (
     <>
       <ScrollToTop />
@@ -70,7 +79,7 @@ function LiveBandLayout() {
     return <Navigate to="/" replace />
   }
   return (
-    <BandProvider>
+    <BandProvider key={bandSlug}>
       <LiveAppShell />
     </BandProvider>
   )
@@ -82,6 +91,7 @@ function BandIndexRedirect() {
 }
 
 const sharedAuth = [
+  { path: "change-password", element: <ChangePasswordScreen /> },
   { path: "privacy", element: <PrivacyScreen /> },
   { path: "login", element: <LoginScreen /> },
   { path: "register", element: <RegisterScreen /> },
@@ -103,12 +113,13 @@ const demoPatron = [
 ]
 
 const liveBandPatron = [
-  { index: true, element: <ModulePage module="truck_tracker" /> },
-  { path: "updates", element: <ModulePage module="updates" /> },
-  { path: "updates/:id", element: <ModulePage module="updates" /> },
+  { index: true, element: <ModulePage module="truck_tracker"><LiveTrackerScreen /></ModulePage> },
+  { path: "friends", element: <ModulePage module="friends"><FriendsScreen /></ModulePage> },
+  { path: "updates", element: <ModulePage module="updates"><LiveContentScreen module="updates" /></ModulePage> },
+  { path: "updates/:id", element: <ModulePage module="updates"><LiveContentScreen module="updates" /></ModulePage> },
   { path: "photos", element: <ModulePage module="photos" /> },
   { path: "library", element: <ModulePage module="photos" /> },
-  { path: "guide", element: <ModulePage module="guide" /> },
+  { path: "guide", element: <ModulePage module="guide"><LiveContentScreen module="guide" /></ModulePage> },
   { path: "upsell/:moduleCode", element: <ModuleUpsellRoute /> },
   { path: "account", element: <AccountScreen /> },
   {
@@ -164,7 +175,7 @@ const router = createBrowserRouter(
 export default function App() {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <Suspense fallback={<div className="p-8 text-center">Loading…</div>}><RouterProvider router={router} /></Suspense>
     </AuthProvider>
   )
 }

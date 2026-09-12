@@ -8,6 +8,7 @@ export async function entitledModules(bandId: string): Promise<ModuleCode[]> {
     FROM band_entitlements
     WHERE band_id = ${bandId}::uuid
       AND status = 'active'
+      AND starts_at <= now()
       AND (ends_at IS NULL OR ends_at > now())
   `
   return rows.map((row) => row.module_code as ModuleCode)

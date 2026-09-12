@@ -1,15 +1,18 @@
 import { Link, NavLink, Outlet, useParams } from "react-router-dom"
 
 import { brand } from "@/config/brand"
+import type { ModuleCode } from "@/config/modules"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
 import { LogoMark } from "@/state/DemoProvider"
-import { useAuth } from "@/state/AuthProvider"
-import { useBand } from "@/state/BandProvider"
+import { BrandAtmosphere } from "@/components/brand/BrandVisuals"
+import { useAuth } from "@/state/auth-context"
+import { useBand } from "@/state/band-context"
 import { bandHref } from "@/lib/paths"
 
-const TABS: { path: string; end?: boolean; label: string; icon: IconName }[] = [
+const TABS: { path: string; end?: boolean; label: string; icon: IconName; module?: ModuleCode }[] = [
   { path: "/", end: true, label: "Tracker", icon: "map-pin" },
+  { path: "/friends", label: "Friends", icon: "users", module: "friends" },
   { path: "/updates", label: "Updates", icon: "megaphone" },
   { path: "/photos", label: "Photos", icon: "camera" },
   { path: "/guide", label: "Guide", icon: "compass" },
@@ -19,14 +22,16 @@ export function LiveAppShell() {
   const { band } = useBand()
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="relative isolate flex min-h-dvh flex-col">
+      <BrandAtmosphere />
       <BrandBar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-44 pt-5 sm:px-6 md:pt-8">
+      <a href="#main-content" className="sr-only z-[90] rounded-full bg-gold px-5 py-3 text-goldink focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
+      <main id="main-content" className="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-5 sm:px-6 md:pt-8">
         <Outlet />
-        <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-3 text-center text-xs text-faint">
+        <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-3 border-t border-line/60 pb-4 pt-6 text-center text-xs leading-relaxed text-muted">
           <span>
-            {brand.productName} · {band.name} — assistive location when tracking
-            is live. Marshals over the map.
+            {brand.footerLine ??
+              `${brand.productName} · ${band.name} — assistive location when tracking is live. Marshals over the map.`}
           </span>
           <Link
             to="/privacy"
@@ -48,17 +53,24 @@ function BrandBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-night/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <LogoMark size={38} />
-          <div className="min-w-0 leading-tight">
-            <p className="truncate font-display text-[15px] font-bold tracking-tight">
-              {brand.productName}
+          <Link to={bandHref(bandSlug, "/")} aria-label={`${band.name} home`} className="shrink-0 rounded-xl"><LogoMark size={brand.logoWide ? 42 : 38} /></Link>
+          {brand.logoWide ? (
+            <p className="min-w-0 text-[10px] font-semibold uppercase leading-relaxed tracking-[0.14em] text-gold sm:text-xs">
+              <span className="block">{(band.eventLabel || brand.eventLabel).split("·")[0]?.trim()}</span>
+              <span className="block text-muted">Carnival {band.eventYear}</span>
             </p>
-            <p className="truncate text-xs text-gold">
-              {band.name} · {band.eventYear}
-            </p>
-          </div>
+          ) : (
+            <div className="min-w-0 leading-tight">
+              <p className="truncate font-display text-[15px] font-bold tracking-tight">
+                {brand.productName}
+              </p>
+              <p className="truncate text-xs text-gold">
+                {band.name} · {band.eventYear}
+              </p>
+            </div>
+          )}
         </div>
         <Link
           to={bandHref(bandSlug, "/account")}
@@ -73,14 +85,18 @@ function BrandBar() {
 
 function BottomNav() {
   const { bandSlug } = useParams()
+  const { moduleLive } = useBand()
+  // A tab for a package this band has not bought would lead to an upsell, so it
+  // is simply not shown. The set stays fixed in size, so the row cannot reflow.
+  const tabs = TABS.filter((tab) => !tab.module || moduleLive(tab.module))
 
   return (
     <nav
       aria-label="Main navigation"
       className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
     >
-      <div className="mx-auto grid w-full max-w-xl grid-cols-4 gap-1 rounded-[22px] border border-line bg-panel/95 p-1.5 shadow-card backdrop-blur-lg">
-        {TABS.map((tab) => (
+      <div className={`mx-auto grid w-full max-w-xl ${tabs.length === 5 ? "grid-cols-5" : "grid-cols-4"} gap-1 rounded-[22px] border border-line bg-panel/95 p-1.5 shadow-[0_8px_40px_rgba(0,0,0,0.55)] backdrop-blur-lg`}>
+        {tabs.map((tab) => (
           <NavLink
             key={tab.path}
             to={bandHref(bandSlug, tab.path)}

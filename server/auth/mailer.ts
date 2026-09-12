@@ -14,6 +14,7 @@ export async function sendMail(env: AppEnv, message: MailMessage): Promise<void>
   if (env.resendApiKey) {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
+      signal: AbortSignal.timeout(10000),
       headers: {
         Authorization: `Bearer ${env.resendApiKey}`,
         "Content-Type": "application/json",
@@ -26,16 +27,11 @@ export async function sendMail(env: AppEnv, message: MailMessage): Promise<void>
       }),
     })
     if (!res.ok) {
-      const body = await res.text()
-      throw new Error(`Resend failed: ${res.status} ${body}`)
+      throw new Error(`Resend failed: ${res.status}`)
     }
     return
   }
 
-  console.log("[mail]", {
-    from: env.mailFrom,
-    to: message.to,
-    subject: message.subject,
-    text: message.text,
-  })
+  if (env.isProd) throw new Error("Production mail is not configured")
+  console.info("[mail] Development delivery skipped; configure RESEND_API_KEY to receive recovery emails.")
 }

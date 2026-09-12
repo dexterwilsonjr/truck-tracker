@@ -7,6 +7,7 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   base: process.env.BASE_PATH || "/",
+  preview: { proxy: { '/api': 'http://127.0.0.1:8788' } },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

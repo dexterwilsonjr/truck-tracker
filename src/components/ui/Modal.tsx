@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import type { ReactNode } from "react"
 
 import { Icon } from "@/components/ui/Icon"
@@ -10,6 +11,11 @@ const FOCUSABLE =
  * Accessible modal: Escape closes, focus is trapped inside, the opener
  * regains focus on close, scroll behind is locked. Mobile: bottom sheet;
  * sm and up: centred dialog.
+ *
+ * Rendered through a portal on `document.body` on purpose. Page content sits in
+ * a positioned container, which creates its own stacking context, so a modal
+ * mounted alongside it would paint underneath the fixed bottom navigation and
+ * its lower buttons could not be tapped.
  */
 export function Modal({
   open,
@@ -49,7 +55,7 @@ export function Modal({
       const last = focusables[focusables.length - 1]
       if (!first || !last) return
 
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
         event.preventDefault()
         last.focus()
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -71,7 +77,7 @@ export function Modal({
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6"
       role="presentation"
@@ -111,6 +117,7 @@ export function Modal({
         </header>
         <div className="overflow-y-auto px-5 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

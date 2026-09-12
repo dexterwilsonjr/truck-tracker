@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { brand } from "@/config/brand"
 import type { LocalPhoto, Photo, PhotoFilter } from "@/types/models"
 import { createSamplePhotos } from "@/data/mockData"
 import { PHASE_META } from "@/config/labels"
@@ -12,7 +13,7 @@ import { Icon } from "@/components/ui/Icon"
 import { photoArt, formatFileSize } from "@/features/photos/PhotoArt"
 import { AddPhotosSheet } from "@/features/photos/AddPhotosSheet"
 import { CrossSell } from "@/features/upsell/CrossSell"
-import { useDemoHref } from "@/lib/demo-base"
+import { useDemoHref } from "@/lib/demo-paths"
 
 const FILTERS: { value: PhotoFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -70,19 +71,21 @@ export function PhotosScreen() {
             Photos
           </h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted">
-            Share the road with the band — pick up to {MAX_PHOTOS} photos (up
-            to {MAX_SIZE_MB} MB each).
+            {brand.visuals?.gallery?.length
+              ? "Fantasy Island artwork from the band, plus local previews you add on this device."
+              : `Share the road with the band — pick up to ${MAX_PHOTOS} photos (up to ${MAX_SIZE_MB} MB each).`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
+            disabled={localPhotos.length >= MAX_PHOTOS}
             icon={<Icon name="plus" className="size-5" />}
             onClick={() => setPickerOpen(true)}
           >
             Add photos
           </Button>
           <Button variant="secondary" to={libraryTo}>
-            Truck Tracker Library
+            {brand.productName} Library
           </Button>
         </div>
       </header>
@@ -104,7 +107,7 @@ export function PhotosScreen() {
 
       <p className="rounded-2xl border border-warn/30 bg-warn/[0.07] px-4 py-3 text-[13px] leading-relaxed text-warn">
         Local preview only. Photos are not uploaded and will clear when you
-        refresh.
+        leave this page or refresh.
       </p>
 
       {visible.length === 0 ? (
@@ -131,7 +134,7 @@ export function PhotosScreen() {
                 className="group relative block aspect-square w-full overflow-hidden rounded-2xl border border-line bg-raised text-left transition focus-visible:outline-2"
                 aria-label={`View ${photo.title}`}
               >
-                {photo.kind === "sample" ? (
+                {photo.kind === "sample" && !photo.src ? (
                   <span
                     aria-hidden="true"
                     className="absolute inset-0 block"
@@ -139,7 +142,7 @@ export function PhotosScreen() {
                   />
                 ) : (
                   <img
-                    src={photo.url}
+                    src={photo.kind === "local" ? photo.url : photo.src ?? ""}
                     alt={photo.title}
                     className="absolute inset-0 h-full w-full object-cover"
                     loading="lazy"
@@ -176,6 +179,7 @@ export function PhotosScreen() {
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         defaultCategory={addLabel}
+        remaining={Math.max(0, MAX_PHOTOS - localPhotos.length)}
         onAdd={(entries) => {
           setLocalPhotos((prev) => [...prev, ...entries])
           setPickerOpen(false)
@@ -201,7 +205,9 @@ function PhotoLightbox({
 }) {
   const caption = photo
     ? photo.kind === "sample"
-      ? `${PHASE_META[photo.category].label} · sample artwork`
+      ? photo.src
+        ? `${PHASE_META[photo.category].label} · band artwork`
+        : `${PHASE_META[photo.category].label} · sample artwork`
       : `${PHASE_META[photo.category].label} · local preview`
     : ""
 
@@ -210,7 +216,7 @@ function PhotoLightbox({
       {photo && (
         <div className="space-y-4">
           <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-line bg-night">
-            {photo.kind === "sample" ? (
+            {photo.kind === "sample" && !photo.src ? (
               <div
                 aria-label={photo.title}
                 role="img"
@@ -223,7 +229,7 @@ function PhotoLightbox({
               </div>
             ) : (
               <img
-                src={photo.url}
+                src={photo.kind === "local" ? photo.url : photo.src ?? ""}
                 alt={photo.title}
                 className="max-h-[62vh] w-full object-contain"
               />

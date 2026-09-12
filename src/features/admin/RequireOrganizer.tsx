@@ -1,8 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom"
 import type { ReactNode } from "react"
 
-import { useAuth } from "@/state/AuthProvider"
-import { useBand } from "@/state/BandProvider"
+import { useAuth } from "@/state/auth-context"
+import { useBand } from "@/state/band-context"
 import { bandHref } from "@/lib/paths"
 
 export function RequireOrganizer({ children }: { children: ReactNode }) {

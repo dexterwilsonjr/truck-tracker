@@ -133,13 +133,21 @@ export interface NewAnnouncement {
   pinned: boolean
 }
 
-const TRUCK_MESSAGES: Record<TruckStatus, string> = {
-  live: "Rolling smooth through Scarborough. See you at the meet point.",
-  delayed:
-    "Heavy traffic near the depot — the crew is working on a new ETA. Watch Updates.",
-  "signal-lost":
-    "We lost the truck's signal on the coast road. Latest word will land in Updates.",
-}
+const TRUCK_MESSAGES: Record<TruckStatus, string> = brand.id === "fog-angels"
+  ? {
+      live: "Fantasy Island is gathering. Meet at Chill Out Bar, then follow your marshals.",
+      delayed:
+        "The crew is holding for a moment — watch Updates and stay with your section.",
+      "signal-lost":
+        "We lost the truck’s signal. Latest word will land in Updates — follow your marshals.",
+    }
+  : {
+      live: "Rolling smooth through Scarborough. See you at the meet point.",
+      delayed:
+        "Heavy traffic near the depot — the crew is working on a new ETA. Watch Updates.",
+      "signal-lost":
+        "We lost the truck's signal on the coast road. Latest word will land in Updates.",
+    }
 
 export const demoApi = {
   /** Initial app bootstrap. */

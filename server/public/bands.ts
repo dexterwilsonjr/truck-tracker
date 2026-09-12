@@ -42,6 +42,10 @@ publicApi.get("/bands/:slug", async (c) => {
   const entitled = await entitledModules(band.id)
   const live = liveModules(entitled)
   const coming = comingOnline(entitled)
+  const productName =
+    typeof band.brand.productName === "string" && band.brand.productName.trim()
+      ? band.brand.productName
+      : "Truck Tracker"
   return c.json({
     band: {
       id: band.id,
@@ -55,7 +59,9 @@ publicApi.get("/bands/:slug", async (c) => {
       deployedPackages: [...DEPLOYED_PACKAGES],
       liveModules: live,
       comingOnline: coming,
-      upsells: UPSELL_CATALOG,
+      upsells: JSON.parse(
+        JSON.stringify(UPSELL_CATALOG).replaceAll("Truck Tracker", productName),
+      ) as typeof UPSELL_CATALOG,
       catalog: MODULE_CODES,
     },
   })

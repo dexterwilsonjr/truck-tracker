@@ -1,78 +1,15 @@
 import { useState } from "react"
 import { useId } from "react"
 
-import { brand } from "@/config/brand"
 import { useDemo } from "@/state/demo-context"
 import type { Faq, GuidePhase } from "@/types/models"
 import { Card, Chip, Divider, SectionLabel } from "@/components/ui/Primitives"
 import { Segmented } from "@/components/ui/Segmented"
-import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
+import { BrandContactCard } from "@/features/guide/BrandContactCard"
+import { BrandHero } from "@/components/brand/BrandVisuals"
 import { CrossSell } from "@/features/upsell/CrossSell"
-
-interface ContactChannel {
-  key: string
-  icon: IconName
-  label: string
-  value: string
-  href: string
-}
-
-function buildChannels(): ContactChannel[] {
-  const c = brand.contact
-  const channels: ContactChannel[] = []
-  if (c.phone.trim()) {
-    const digits = c.phone.replace(/[^\d+]/g, "")
-    channels.push({
-      key: "phone",
-      icon: "phone",
-      label: "Call the band",
-      value: c.phone,
-      href: `tel:${digits}`,
-    })
-  }
-  if (c.whatsapp.trim()) {
-    const digits = c.whatsapp.replace(/\D/g, "")
-    channels.push({
-      key: "whatsapp",
-      icon: "message",
-      label: "WhatsApp the crew",
-      value: c.whatsapp,
-      href: `https://wa.me/${digits}`,
-    })
-  }
-  if (c.email.trim()) {
-    channels.push({
-      key: "email",
-      icon: "mail",
-      label: "Email the band",
-      value: c.email,
-      href: `mailto:${c.email}`,
-    })
-  }
-  if (c.instagram.trim()) {
-    const handle = c.instagram.replace(/^@/, "")
-    channels.push({
-      key: "instagram",
-      icon: "compass",
-      label: "Instagram",
-      value: `@${handle}`,
-      href: `https://instagram.com/${handle}`,
-    })
-  }
-  if (c.website.trim()) {
-    const url = /^https?:\/\//.test(c.website) ? c.website : `https://${c.website}`
-    channels.push({
-      key: "website",
-      icon: "globe",
-      label: "Band website",
-      value: c.website,
-      href: url,
-    })
-  }
-  return channels
-}
 
 export function GuideScreen() {
   const { snapshot } = useDemo()
@@ -90,6 +27,7 @@ export function GuideScreen() {
           are marked until organisers confirm.
         </p>
       </header>
+      <BrandHero alt="Fantasy Island event guide" />
 
       <Segmented
         label="Choose event day"
@@ -104,7 +42,7 @@ export function GuideScreen() {
       <PhaseContent phase={phase} />
 
       <FaqSection faqs={snapshot.faqs} />
-      <ContactSection />
+      <BrandContactCard />
       <Card className="p-5">
         <SectionLabel>On the road</SectionLabel>
         <p className="mt-3 text-sm leading-relaxed text-muted">
@@ -285,55 +223,3 @@ function FaqItem({ faq, defaultOpen }: { faq: Faq; defaultOpen: boolean }) {
   )
 }
 
-function ContactSection() {
-  const channels = buildChannels()
-
-  return (
-    <Card className="p-5">
-      <SectionLabel>Contact & bookings</SectionLabel>
-      {channels.length === 0 ? (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm leading-relaxed text-muted">
-            Contact channels are not set up yet. Once the band shares its
-            official phone, WhatsApp and social links, they will appear here —
-            nothing is hard-coded or invented.
-          </p>
-          <p className="text-[13px] leading-relaxed text-faint">
-            Costume registration and ticket sales stay on the band's website.
-            This app never takes payments.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {channels.map((channel) => (
-            <Button
-              key={channel.key}
-              variant="secondary"
-              href={channel.href}
-              className="justify-between"
-              icon={<Icon name={channel.icon} className="size-4" />}
-            >
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold">
-                  {channel.label}
-                </span>
-                <span className="block truncate text-xs font-normal text-faint">
-                  {channel.value}
-                </span>
-              </span>
-            </Button>
-          ))}
-          {brand.registrationUrl.trim() && (
-            <Button
-              href={brand.registrationUrl}
-              className="sm:col-span-2"
-              icon={<Icon name="pencil" className="size-4" />}
-            >
-              Register for a costume
-            </Button>
-          )}
-        </div>
-      )}
-    </Card>
-  )
-}

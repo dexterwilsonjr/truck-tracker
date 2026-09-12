@@ -1,17 +1,25 @@
+import { useState } from "react"
+import { api } from "@/services/api"
+import { useAuth } from "@/state/auth-context"
 import { Link, useParams } from "react-router-dom"
 
 import type { ModuleCode } from "@/config/modules"
 import { isModuleCode } from "@/config/modules"
 import { UPSELL_CATALOG } from "@/features/upsell/catalog"
 import { CrossSell, MODULE_ICONS } from "@/features/upsell/CrossSell"
-import { useOptionalBand } from "@/state/BandProvider"
+import { useOptionalBand } from "@/state/band-context"
+import { BandPhotoGrid } from "@/components/brand/BrandVisuals"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Primitives"
 import { Icon } from "@/components/ui/Icon"
+import { brand } from "@/config/brand"
 
 export function UpsellScreen({ module }: { module: ModuleCode }) {
   const band = useOptionalBand()
-  const copy = band?.band.upsells[module] ?? UPSELL_CATALOG[module]
+  const { user } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState("")
+  const copy = UPSELL_CATALOG[module]
   const coming = band?.comingOnline(module) ?? false
   const organizer = band?.isOrganizer ?? false
   const voice = coming
@@ -19,14 +27,26 @@ export function UpsellScreen({ module }: { module: ModuleCode }) {
     : organizer
       ? copy.organizer
       : copy.patron
-  const cta = coming
-    ? "Coming online"
-    : organizer
-      ? copy.organizer.cta
-      : copy.patron.cta
+
+
+  const showBandPhotos = module === "photos" && Boolean(brand.visuals?.gallery?.length)
 
   return (
     <div className="space-y-8 motion-safe:animate-fade-up">
+      {showBandPhotos ? (
+        <div className="space-y-4">
+          <header>
+            <h1 className="font-display text-[30px] font-bold leading-none tracking-tight sm:text-4xl">
+              Photos
+            </h1>
+            <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted">
+              Explore the Fantasy Island collection. Tap a photo to take a closer look.
+            </p>
+          </header>
+          <p className="inline-flex rounded-full border border-gold/25 bg-gold/8 px-3 py-1.5 text-xs font-medium text-gold">Preview collection · event uploads coming soon</p>
+          <BandPhotoGrid />
+        </div>
+      ) : (
       <Card className="p-6 sm:p-8">
         <span className="grid size-14 place-items-center rounded-2xl bg-gold/12 text-gold">
           <Icon name={MODULE_ICONS[module]} className="size-7" />
@@ -37,21 +57,13 @@ export function UpsellScreen({ module }: { module: ModuleCode }) {
         <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted">
           {voice.body}
         </p>
-        <Button className="mt-6" size="lg" disabled>
-          {cta}
-        </Button>
-        {organizer && !coming && (
-          <p className="mt-3 text-[13px] text-faint">
-            Turn this on from{" "}
-            <Link
-              to="/platform"
-              className="font-semibold text-gold underline decoration-dotted underline-offset-4"
-            >
-              platform admin
-            </Link>{" "}
-            after the contract is live.
-          </p>
-        )}
+        {coming ? <p className="mt-5 text-gold">Coming online</p> : organizer && band && (user?.platformRole === "platform_admin" || user?.bandRoles.some(r => r.bandId === band.band.id && r.role === "organizer")) ? <Button className="mt-6" size="lg" busy={busy} onClick={() => {
+          setBusy(true); setNotice("")
+          void api(`/admin/bands/${band.band.id}/requests`, { method: "POST", body: JSON.stringify({ moduleCode: module }) })
+            .then(() => setNotice("Request saved for the platform team."))
+            .catch(e => setNotice(e.message)).finally(() => setBusy(false))
+        }}>Request this feature</Button> : <Button className="mt-6" to={band ? `/${band.band.slug}/guide` : "/guide"}>View event guide</Button>}
+        {notice && <p className="mt-3" role="status">{notice}</p>}
         <p className="mt-4 text-[12px] text-faint">
           <Link
             to="/privacy"
@@ -61,7 +73,8 @@ export function UpsellScreen({ module }: { module: ModuleCode }) {
           </Link>
         </p>
       </Card>
-      <CrossSell exclude={module} />
+      )}
+      {organizer && !showBandPhotos && <CrossSell exclude={module} />}
     </div>
   )
 }

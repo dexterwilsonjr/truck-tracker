@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 
 import { isLiveApi } from "@/lib/live-api"
-import { useAuth } from "@/state/AuthProvider"
+import { useAuth } from "@/state/auth-context"
 import { AuthChrome } from "@/features/auth/AuthChrome"
 import { Button } from "@/components/ui/Button"
 import { TextField } from "@/components/ui/Field"

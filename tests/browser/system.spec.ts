@@ -1,0 +1,47 @@
+import { test, expect } from '@playwright/test'
+test('two browser sessions complete real API phone GPS, delay and end-live flow', async ({ browser }) => {
+  const crew = await browser.newContext({ geolocation:{latitude:11.18,longitude:-60.73,accuracy:10},permissions:['geolocation'] })
+  const patron = await browser.newContext()
+  const admin = await crew.newPage(), view = await patron.newPage()
+  await view.goto('http://127.0.0.1:4173/browser-band')
+  await expect(view.getByRole('heading',{name:/Browser truck · Not on the road yet/})).toBeVisible()
+  await admin.goto('http://127.0.0.1:4173/browser-band/admin')
+  await admin.getByLabel('Email',{exact:true}).fill('browser@example.test')
+  await admin.getByLabel('Password',{exact:true}).fill('browser-test-password-12')
+  await admin.getByRole('button',{name:'Sign in',exact:true}).click()
+  await expect(admin.getByRole('heading',{name:'Take the truck live'})).toBeVisible()
+  await admin.getByRole('button',{name:'Go live',exact:true}).click()
+  await admin.getByRole('button',{name:'Send location once'}).click()
+  await expect(admin.getByText('Last sent at',{exact:false})).toBeVisible()
+  await expect(view.getByText('Updated from a marshal’s phone',{exact:false})).toBeVisible({timeout:15000})
+  await admin.getByLabel('Delay update').fill('Water stop')
+  await admin.getByRole('button',{name:'Mark delayed'}).click()
+  await expect(view.getByText('Water stop',{exact:true})).toBeVisible({timeout:15000})
+  await admin.getByRole('button',{name:'End live',exact:true}).click()
+  await expect(view.getByRole('heading',{name:/Browser truck · Not on the road yet/})).toBeVisible({timeout:15000})
+  await expect(view.getByText('Updated from a marshal’s phone',{exact:false})).toHaveCount(0)
+  await view.screenshot({path:'test-results/tracker-mobile.png',fullPage:true})
+  await admin.getByRole('button',{name:'End live and log out'}).click()
+  await expect(admin.getByRole('heading',{name:'Sign in',exact:true})).toBeVisible()
+  await crew.close();await patron.close()
+})
+
+test('visited guide reopens with network fully offline', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await page.goto('http://127.0.0.1:4173/browser-band/guide')
+  await expect(page.getByText('Offline event guide')).toBeVisible()
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) => navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }))
+    }
+  })
+  await page.reload({ waitUntil: 'networkidle' })
+  await expect(page.getByText('Offline event guide')).toBeVisible()
+  await context.setOffline(true)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByText('Offline event guide')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Offline copy', { exact: false })).toBeVisible()
+  await context.close()
+})

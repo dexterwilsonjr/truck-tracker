@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom"
 
+import { brand } from "@/config/brand"
 import type { ModuleCode } from "@/config/modules"
 import { ALSO_ON_THE_ROAD, MODULE_TITLES, UPSELL_CATALOG } from "@/features/upsell/catalog"
 import { bandHref } from "@/lib/paths"
-import { demoHref, useDemoBase } from "@/lib/demo-base"
-import { useOptionalBand } from "@/state/BandProvider"
+import { demoHref, useDemoBase } from "@/lib/demo-paths"
+import { useOptionalBand } from "@/state/band-context"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
 
 const ICONS: Record<ModuleCode, IconName> = {
   truck_tracker: "map-pin",
+  friends: "users",
   updates: "megaphone",
   guide: "compass",
   photos: "camera",
@@ -31,11 +33,11 @@ export function CrossSell({
   const codes = ALSO_ON_THE_ROAD.filter((code) => code !== exclude)
 
   return (
-    <section className={className} aria-label="More from Truck Tracker">
+    <section className={className} aria-label={`More from ${brand.productName}`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold">
         Also on the road
       </p>
-      <p className="mt-1 text-sm text-muted">More from Truck Tracker</p>
+      <p className="mt-1 text-sm text-muted">More from {brand.productName}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {codes.map((code) => (
           <li key={code}>

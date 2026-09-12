@@ -7,6 +7,7 @@ const RESERVED = new Set([
   "register",
   "forgot",
   "reset",
+  "change-password",
 ])
 
 export function isReservedBandSlug(slug: string): boolean {

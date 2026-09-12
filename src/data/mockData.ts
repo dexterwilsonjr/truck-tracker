@@ -16,9 +16,20 @@ import { daysAgo, hoursAgo, minutesAgo } from "@/utils/time"
  * call into a real data service when the band's feeds go live.
  */
 
-const tbcDate = "February 2026 — dates to be confirmed"
+const tbcDate = brand.id === "fog-angels"
+  ? "29 October – 4 November 2026 — confirm the day’s call with your section"
+  : "February 2026 — dates to be confirmed"
 
 export function createMockTruck(): TruckState {
+  if (brand.id === "fog-angels") {
+    return {
+      truckName: brand.presentation.truckName,
+      status: "live",
+      message:
+        "Fantasy Island is gathering. Meet at Chill Out Bar, then follow your marshals.",
+      lastUpdateISO: minutesAgo(3),
+    }
+  }
   return {
     truckName: "Blaze",
     status: "live",
@@ -90,18 +101,21 @@ export function createMockGuide(): {
   phases: GuidePhase[]
   faqs: Faq[]
 } {
+  const meetup = brand.presentation.meetup.label
   const phases: GuidePhase[] = [
     {
       id: "jouvert",
       name: "J'ouvert",
       shortName: "J'ouvert",
       description:
-        "Dawn breaks over the mas camp — paint, mud and the first road of the season.",
+        brand.id === "fog-angels"
+          ? "Dawn on Fantasy Island — Stink N Dutty, paint, and the first road of Tobago Carnival."
+          : "Dawn breaks over the mas camp — paint, mud and the first road of the season.",
       meeting: {
         name: "J'ouvert meet-up",
         dateLabel: tbcDate,
         timeLabel: "4:00 AM",
-        location: "Scarborough, Tobago — exact spot to be confirmed",
+        location: meetup,
         note:
           "Final meet-up point is confirmed closer to the event and pinned in Updates.",
         confirmed: false,
@@ -134,7 +148,7 @@ export function createMockGuide(): {
       costume: {
         name: "J'ouvert Colour Splash",
         collectionDateLabel: tbcDate,
-        collectionLocation: "Storehouse, Milford Road, Scarborough",
+        collectionLocation: brand.id === "fog-angels" ? "Chill Out Bar, Milford Road, Tobago" : "Storehouse, Milford Road, Scarborough",
         bringWithYou: [
           "Booking reference (paper or phone)",
           "Photo ID",
@@ -148,12 +162,14 @@ export function createMockGuide(): {
       name: "Pretty Mas",
       shortName: "Pretty Mas",
       description:
-        "The main parade — feathers, beads and the full band rolling across Tobago.",
+        brand.id === "fog-angels"
+          ? "Pretty Mas on Fantasy Island — feathers, beads and the full band on the Tobago road."
+          : "The main parade — feathers, beads and the full band rolling across Tobago.",
       meeting: {
         name: "Pretty Mas meet-up",
         dateLabel: tbcDate,
         timeLabel: "12:00 PM",
-        location: "Scarborough Esplanade — exact spot to be confirmed",
+        location: meetup,
         note:
           "Be on the truck no later than 11:30 AM for the warm-up lap.",
         confirmed: false,
@@ -185,7 +201,7 @@ export function createMockGuide(): {
       costume: {
         name: "Masquerade '26",
         collectionDateLabel: tbcDate,
-        collectionLocation: "Storehouse, Milford Road, Scarborough",
+        collectionLocation: brand.id === "fog-angels" ? "Chill Out Bar, Milford Road, Tobago" : "Storehouse, Milford Road, Scarborough",
         bringWithYou: [
           "Booking reference (paper or phone)",
           "Photo ID",
@@ -210,7 +226,8 @@ export function createMockGuide(): {
       question: "Can I buy a costume or ticket here?",
       answer:
         "No — this app complements the band's website. Costume registration and " +
-        "bookings stay on the official site so payments are handled properly.",
+        "bookings stay on the official site so payments are handled properly." +
+        (brand.registrationUrl ? ` Start at ${brand.registrationUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}.` : ""),
     },
     {
       id: "faq-times",
@@ -233,8 +250,18 @@ export function createMockGuide(): {
   return { phases, faqs }
 }
 
-/** Placeholder gallery artwork — elegant gradients, no real photography. */
+/** Placeholder artwork, or the active brand's gallery when one is configured. */
 export function createSamplePhotos(): SamplePhoto[] {
+  const gallery = brand.visuals?.gallery
+  if (gallery?.length) {
+    return gallery.map((photo, index) => ({
+      id: `band-${index}`,
+      category: photo.category,
+      title: photo.title,
+      variant: index,
+      src: photo.src,
+    }))
+  }
   const rows: SamplePhoto[] = [
     { id: "ph1", category: "jouvert", title: "First light on the road", variant: 0 },
     { id: "ph2", category: "jouvert", title: "Colour splash crew", variant: 1 },

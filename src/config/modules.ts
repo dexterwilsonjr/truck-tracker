@@ -1,6 +1,7 @@
 /** Paid SKU codes. Runtime gate is entitlements ∩ deployed packages. */
 export const MODULE_CODES = [
   "truck_tracker",
+  "friends",
   "updates",
   "guide",
   "photos",

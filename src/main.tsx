@@ -13,3 +13,7 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 )
+
+if (import.meta.env.PROD && import.meta.env.VITE_API_URL && "serviceWorker" in navigator) {
+  void navigator.serviceWorker.register("/sw.js").catch(() => { /* Offline support is optional. */ })
+}

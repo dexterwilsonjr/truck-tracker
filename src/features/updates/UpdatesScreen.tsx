@@ -13,7 +13,7 @@ import { Icon } from "@/components/ui/Icon"
 import { Button } from "@/components/ui/Button"
 import { CrossSell } from "@/features/upsell/CrossSell"
 import { relativeTime } from "@/utils/time"
-import { useDemoHref } from "@/lib/demo-base"
+import { useDemoHref } from "@/lib/demo-paths"
 
 type Filter = "all" | AnnouncementCategory
 

@@ -1,110 +1,58 @@
 /**
- * Brand configuration — council lock for Platform V1.
+ * Brand configuration.
  *
- * Midnight road, brass gold, Caribbean teal. Space Grotesk + Inter.
- * Tagline: Find the truck. Catch the vibe.
- * Do not add a light theme, clipart, or a second CSS theme file.
+ * The active pack is resolved from the client registry (`clients.ts`) so one
+ * repository serves every band. Unset `VITE_BRAND` for local checks and
+ * Playwright, which stay on the original pack.
  *
- * White-label later: swap bandName, palette, logo here or from the band API
- * record. Do not fork the component set.
+ *   VITE_BRAND=fog-angels npm run build:live
+ *   unset VITE_BRAND  # original Truck Tracker / Tobago Carnival
  *
- * To ship Truck Tracker for Fog Angels, Iconic Mas or another band:
- *   1. Change bandName, eventYear and eventLabel.
- *   2. Swap logo artwork for the band's own (logoPlaceholder below stays until then).
- *   3. Adjust palette hex values (they are applied as CSS variables at runtime,
- *      overriding the defaults in src/index.css).
- *   4. Fill in contact details so buttons become live; empty strings keep the
- *      screens in their friendly "not set up yet" state.
+ * Do not fork the component set per band.
  */
 
-export interface BrandPalette {
-  night: string
-  panel: string
-  raised: string
-  line: string
-  ink: string
-  muted: string
-  faint: string
-  gold: string
-  goldink: string
-  teal: string
-  live: string
-  warn: string
-  sky: string
-  danger: string
+export type { Brand, BrandContact, BrandPalette } from "./brands/types"
+import { CLIENTS, DEFAULT_CLIENT_ID, clientById, type ClientApp } from "./clients"
+import type { Brand } from "./brands/types"
+
+export function clientIdFromEnv(raw: string | undefined = import.meta.env.VITE_BRAND): string {
+  return raw && clientById(raw) ? raw : DEFAULT_CLIENT_ID
 }
 
-export interface BrandContact {
-  phone: string
-  whatsapp: string
-  email: string
-  instagram: string
-  website: string
-}
+export const client: ClientApp = CLIENTS[clientIdFromEnv()]!
+export const brand: Brand = client.brand
 
-export interface Brand {
-  /** Product / app name shown in the top bar. */
-  productName: string
-  /** The band this build represents. Placeholder until a band is chosen. */
-  bandName: string
-  eventYear: number
-  /** Small line shown under the band name on the tracker. */
-  eventLabel: string
-  tagline: string
-  /** Swap for the band's own logo. Until then a gold monogram is shown. */
-  logoPlaceholder: {
-    monogram: string
-    caption: string
-  }
-  /** Apply this palette at runtime via installBrand(). */
-  palette: BrandPalette
-  /** Empty strings = channel not configured -> screens show an unavailable state. */
-  contact: BrandContact
-  /** Optional registration / ticket link on the Guide. Empty = hidden state. */
-  registrationUrl: string
-}
-
-export const brand: Brand = {
-  productName: "Truck Tracker",
-  bandName: "Tobago Carnival",
-  eventYear: 2026,
-  eventLabel: "J'ouvert & Pretty Mas",
-  tagline: "Find the truck. Catch the vibe.",
-  logoPlaceholder: {
-    monogram: "TT",
-    caption: "Placeholder mark — swap for the band's logo",
-  },
-  palette: {
-    night: "#070b15",
-    panel: "#0d1424",
-    raised: "#151e33",
-    line: "#23304d",
-    ink: "#f3f5fb",
-    muted: "#98a3ba",
-    faint: "#626f8c",
-    gold: "#eab84c",
-    goldink: "#221703",
-    teal: "#31d6bd",
-    live: "#3ddc97",
-    warn: "#f5a524",
-    sky: "#74b3ff",
-    danger: "#f87171",
-  },
-  contact: {
-    phone: "",
-    whatsapp: "",
-    email: "",
-    instagram: "",
-    website: "",
-  },
-  registrationUrl: "",
-}
-
-/** Push brand-derived CSS variables into :root so every token follows brand.ts. */
+/** Push brand-derived CSS variables into :root so every token follows the active pack. */
 export function installBrand(): void {
   const root = document.documentElement
   for (const [token, value] of Object.entries(brand.palette)) {
     root.style.setProperty(`--color-${token}`, value)
   }
-  document.title = brand.productName
+  if (brand.fontDisplay) root.style.setProperty("--font-display", brand.fontDisplay)
+  document.title = `${brand.productName} · ${brand.bandName}`
+  const theme = document.querySelector('meta[name="theme-color"]')
+  if (theme) theme.setAttribute("content", brand.palette.night)
+  const description = document.querySelector('meta[name="description"]')
+  if (description) description.setAttribute("content", `${brand.productName} — ${brand.tagline}`)
+  if (brand.fontsHref) {
+    let fonts = document.getElementById("brand-fonts") as HTMLLinkElement | null
+    if (!fonts) {
+      fonts = document.createElement("link")
+      fonts.id = "brand-fonts"
+      fonts.rel = "stylesheet"
+      document.head.appendChild(fonts)
+    }
+    fonts.href = brand.fontsHref
+  }
+  if (brand.logoSrc) {
+    const icon = document.querySelector('link[rel="icon"]')
+    if (icon) icon.setAttribute("href", brand.logoSrc)
+    let apple = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null
+    if (!apple) {
+      apple = document.createElement("link")
+      apple.rel = "apple-touch-icon"
+      document.head.appendChild(apple)
+    }
+    apple.href = brand.logoSrc
+  }
 }

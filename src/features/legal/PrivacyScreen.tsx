@@ -17,14 +17,31 @@ export function PrivacyScreen() {
           an httpOnly cookie.
         </p>
         <p>
-          You can browse a band without an account. Sign-in is for Library,
-          print requests, face match, and saving your place near the truck when
-          those are turned on.
+          You can browse a band without an account. Sign-in is for the Library,
+          future photo features, or crew controls.
         </p>
         <p>
-          Location is not collected in Platform V1. When live tracking ships, the
-          public map shows the truck — not you. Relative distance stays on your
-          device or your signed-in account. We do not sell location.
+          In 1.2, crew members can share a phone’s location while this page stays
+          open. The public truck pin appears only during a live sharing session.
+          End live hides the pin and deletes its stored positions. Older positions
+          are pruned as new updates arrive. We do not sell location.
+        </p>
+        <p>
+          <strong className="font-semibold text-ink">Find your friends is off until you turn it on.</strong>{" "}
+          If your band includes it, you can share your location with people you invite.
+          Nothing is collected until you press Start sharing, and accepting an invite does not
+          start it. Only people you are connected to can see you, and only while you are sharing.
+        </p>
+        <p>
+          We keep only your latest position, not a history of where you have been. It is
+          deleted the moment you stop sharing, remove a friend, or block someone. A sharing
+          session ends by itself at the end of the event. Signing out also ends your sharing
+          and disconnects your phone. Blocking someone works both ways: they stop seeing you,
+          you stop seeing them, and a new invite cannot reconnect you.
+        </p>
+        <p>
+          Friend positions are never shown on the public truck map, are never saved for
+          offline use, and are never sold.
         </p>
         <p>
           Photos in Library (later contract) stay under your account. Face match
@@ -36,8 +53,9 @@ export function PrivacyScreen() {
           store the minimum claims needed to know it is you. No ID documents.
         </p>
         <p>
-          Full policy: see <code className="text-gold">docs/privacy.md</code> in
-          the project, or ask the band for the signed copy on contract.
+          Public meeting details and announcements may be saved on your device
+          for offline use. Precise truck positions and account responses are not
+          stored in that cache. Ask your organizer about account deletion.
         </p>
       </Card>
       <Link

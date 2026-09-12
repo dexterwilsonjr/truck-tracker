@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom"
+import { Link, Navigate, useLocation } from "react-router-dom"
 
 import { isLiveApi } from "@/lib/live-api"
-import { useAuth } from "@/state/AuthProvider"
+import { useAuth } from "@/state/auth-context"
 import { AuthChrome, TobagoIdComingSoon } from "@/features/auth/AuthChrome"
 import { Button } from "@/components/ui/Button"
 import { TextField } from "@/components/ui/Field"
@@ -10,10 +10,9 @@ import { ApiError } from "@/services/api"
 
 export function LoginScreen() {
   const { user, login } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
-  const next =
-    (location.state as { next?: string } | null)?.next ?? defaultNext()
+  const requested = (location.state as { next?: string } | null)?.next
+  const next = user?.mustResetPassword ? "/change-password" : requested?.startsWith("/") && !requested.startsWith("//") ? requested : user?.platformRole === "platform_admin" ? "/platform" : user?.bandRoles[0] ? `/${user.bandRoles[0].slug}/admin` : "/"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -31,7 +30,7 @@ export function LoginScreen() {
     setBusy(true)
     try {
       await login(email, password)
-      navigate(next, { replace: true })
+
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not sign in.")
     } finally {
@@ -78,8 +77,4 @@ export function LoginScreen() {
       </form>
     </AuthChrome>
   )
-}
-
-function defaultNext(): string {
-  return "/"
 }

@@ -25,6 +25,23 @@ export const UPSELL_CATALOG: Record<ModuleCode, UpsellCopy> = {
       body: "This band’s plan includes the truck map. We’re finishing the road setup — last-known will show here, never a fake pin.",
     },
   },
+  friends: {
+    module: "friends",
+    patron: {
+      headline: "Find your friends",
+      body: "This band hasn’t switched friend sharing on yet. When they do, you invite the people you came with, you choose when to share, and you can stop or block at any moment.",
+      cta: "This band hasn’t turned this on yet",
+    },
+    organizer: {
+      headline: "Add Find Your Friend",
+      body: "Patrons invite each other and share their location for the event only. Nobody appears on the map until they choose to share, and anyone can stop sharing or block someone immediately.",
+      cta: "Add friend sharing to this band",
+    },
+    comingOnline: {
+      headline: "Friend sharing is coming online",
+      body: "This band’s plan includes Find Your Friend. We’re finishing the consent and safety setup — who can see you stays your choice.",
+    },
+  },
   updates: {
     module: "updates",
     patron: {

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom"
 
 import { isLiveApi } from "@/lib/live-api"
-import { useAuth } from "@/state/AuthProvider"
+import { useAuth } from "@/state/auth-context"
 import { AuthChrome } from "@/features/auth/AuthChrome"
 import { Button } from "@/components/ui/Button"
 import { TextField } from "@/components/ui/Field"
@@ -49,7 +49,7 @@ export function ResetScreen() {
           label="New password"
           type="password"
           autoComplete="new-password"
-          hint="At least 8 characters."
+          hint="At least 12 characters."
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

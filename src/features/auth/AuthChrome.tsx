@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 
 import { brand } from "@/config/brand"
 import { LogoMark } from "@/state/DemoProvider"
+import { BrandAtmosphere } from "@/components/brand/BrandVisuals"
 import { Icon } from "@/components/ui/Icon"
 
 export function AuthChrome({
@@ -13,11 +14,19 @@ export function AuthChrome({
   children: ReactNode
 }) {
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-12">
+    <div className="relative z-10 mx-auto w-full max-w-md px-4 py-12">
+      <BrandAtmosphere />
       <div className="mb-8 flex flex-col items-center text-center">
-        <LogoMark size={48} />
-        <p className="mt-4 font-display text-lg font-bold">{brand.productName}</p>
-        <p className="text-xs text-gold">{brand.tagline}</p>
+        <LogoMark size={brand.logoWide ? 56 : 48} />
+        {!brand.logoWide && (
+          <p className="mt-4 font-display text-lg font-bold">{brand.productName}</p>
+        )}
+        {brand.kicker && (
+          <p className={`${brand.logoWide ? "mt-4" : "mt-1"} text-[11px] font-semibold uppercase tracking-[0.22em] text-gold`}>
+            {brand.kicker}
+          </p>
+        )}
+        <p className={`${brand.logoWide && !brand.kicker ? "mt-4" : "mt-1"} text-xs text-gold`}>{brand.tagline}</p>
         <h1 className="mt-6 font-display text-[28px] font-bold tracking-tight">
           {title}
         </h1>

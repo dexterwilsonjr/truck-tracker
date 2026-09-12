@@ -30,10 +30,12 @@ export function AddPhotosSheet({
   onClose,
   defaultCategory,
   onAdd,
+  remaining,
 }: {
   open: boolean
   onClose: () => void
   defaultCategory: Category
+  remaining: number
   onAdd: (photos: LocalPhoto[]) => void
 }) {
   const [category, setCategory] = useState<Category>(defaultCategory)
@@ -54,13 +56,14 @@ export function AddPhotosSheet({
   }, [])
 
   const validCount = pending.filter(isValid).length
-  const capacityLeft = MAX_PHOTOS - validCount
+  const capacityLeft = remaining - validCount
 
   function addFiles(fileList: FileList | null) {
     const incoming = Array.from(fileList ?? [])
     if (incoming.length === 0) return
 
-    setPending((current) => {
+    {
+      const current = pendingRef.current
       const additions: PendingFile[] = []
       let overflow = 0
 
@@ -86,7 +89,7 @@ export function AddPhotosSheet({
         const validSoFar =
           current.filter(isValid).length +
           additions.filter(isValid).length
-        if (validSoFar >= MAX_PHOTOS) {
+        if (validSoFar >= remaining) {
           overflow += 1
           continue
         }
@@ -99,13 +102,15 @@ export function AddPhotosSheet({
       }
 
       setOverflowCount((prev) => prev + overflow)
-      return [...current, ...additions]
-    })
+      pendingRef.current = [...current, ...additions]
+      setPending(pendingRef.current)
+    }
   }
 
   function removePending(file: PendingFile) {
     if (file.url) URL.revokeObjectURL(file.url)
-    setPending((current) => current.filter((p) => p.id !== file.id))
+    pendingRef.current = pendingRef.current.filter(p => p.id !== file.id)
+    setPending(pendingRef.current)
   }
 
   function confirm() {
@@ -124,6 +129,8 @@ export function AddPhotosSheet({
           addedAt: new Date().toISOString(),
         }
       })
+    // Ownership moves to the gallery before this sheet unmounts.
+    pendingRef.current = []
     onAdd(added)
     setPending([])
     setOverflowCount(0)

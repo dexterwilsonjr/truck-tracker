@@ -1,5 +1,6 @@
 export const MODULE_CODES = [
   "truck_tracker",
+  "friends",
   "updates",
   "guide",
   "photos",

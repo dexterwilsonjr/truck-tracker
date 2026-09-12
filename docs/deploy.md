@@ -1,5 +1,8 @@
 # Deploy
 
+For 1.2, use [the Firebase/Cloud Run runbook](demo.md). The following describes
+the historical V1 shell and is retained for reference.
+
 ## Platform V1 (this build)
 
 No GPS port. No R2. No VAPID.

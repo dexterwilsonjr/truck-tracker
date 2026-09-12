@@ -11,6 +11,7 @@ import type {
   PhaseId,
   TruckStatus,
 } from "@/types/models"
+import { brand } from "@/config/brand"
 import { Icon } from "@/components/ui/Icon"
 
 type BootState =
@@ -157,20 +158,32 @@ function BootError({
 }
 
 export function LogoMark({ size = 44 }: { size?: number }) {
+  const wide = Boolean(brand.logoWide && brand.logoSrc)
+  const width = wide ? Math.round(size * 2.65) : size
   return (
     <span
-      style={{ width: size, height: size }}
-      className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-[calc(var(--radius-card)*0.55)] border border-gold/30 shadow-card motion-safe:animate-fade-in"
+      style={{ width, height: size }}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden motion-safe:animate-fade-in ${
+        wide
+          ? "rounded-xl border border-gold/25 bg-black shadow-card"
+          : "rounded-[calc(var(--radius-card)*0.55)] border border-gold/30 bg-night shadow-card"
+      }`}
       aria-hidden="true"
     >
-      <span
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(140deg, color-mix(in srgb, var(--color-gold) 85%, #ffffff), color-mix(in srgb, var(--color-gold) 40%, var(--color-night)))",
-        }}
-      />
-      <Icon name="truck" className="relative size-1/2 text-goldink" strokeWidth={2.2} />
+      {brand.logoSrc ? (
+        <img src={brand.logoSrc} alt="" className={wide ? "absolute left-0 top-1/2 aspect-square w-full max-w-none -translate-y-1/2" : "relative h-full w-full object-contain"} />
+      ) : (
+        <>
+          <span
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(140deg, color-mix(in srgb, var(--color-gold) 85%, #ffffff), color-mix(in srgb, var(--color-gold) 40%, var(--color-night)))",
+            }}
+          />
+          <Icon name="truck" className="relative size-1/2 text-goldink" strokeWidth={2.2} />
+        </>
+      )}
     </span>
   )
 }

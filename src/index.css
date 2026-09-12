@@ -97,3 +97,18 @@
     }
   }
 }
+/* Native map controls and popups sit comfortably inside the dark app shell. */
+.maplibregl-popup-content {
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: var(--color-panel);
+  color: var(--color-ink);
+  padding: 16px 28px 16px 16px;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--color-panel);
+}
+.maplibregl-popup-close-button { width: 28px; height: 28px; }
+.maplibregl-ctrl-group button { width: 40px; height: 40px; }

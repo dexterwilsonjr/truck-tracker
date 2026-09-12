@@ -10,6 +10,15 @@ export function loadEnv() {
   const nodeEnv = process.env.NODE_ENV ?? "development"
   const isProd = nodeEnv === "production"
 
+  if (isProd) {
+    required("DATABASE_URL")
+    const origin = required("FRONTEND_ORIGIN")
+    if (!origin.startsWith("https://") || new URL(origin).origin !== origin) throw new Error("FRONTEND_ORIGIN must be an HTTPS origin")
+    const secret = required("SESSION_SECRET")
+    if (secret.length < 32 || /change.?me|dev-session/i.test(secret)) throw new Error("Use a strong SESSION_SECRET of at least 32 characters")
+    required("RESEND_API_KEY")
+    if (required("MAIL_FROM").includes("localhost")) throw new Error("Configure a verified MAIL_FROM")
+  }
   return {
     nodeEnv,
     isProd,
@@ -26,7 +35,7 @@ export function loadEnv() {
       /\/$/,
       "",
     ),
-    cookieName: process.env.COOKIE_NAME ?? "tt_session",
+    cookieName: "__session",
     mailFrom: process.env.MAIL_FROM ?? "Truck Tracker <noreply@localhost>",
     resendApiKey: process.env.RESEND_API_KEY,
     smtpUrl: process.env.SMTP_URL,
@@ -36,6 +45,7 @@ export function loadEnv() {
     platformAdminPassword: process.env.PLATFORM_ADMIN_PASSWORD ?? "changeme",
     seedBandSlug: process.env.SEED_BAND_SLUG ?? "tobago-carnival",
     seedBandName: process.env.SEED_BAND_NAME ?? "Tobago Carnival",
+    seedBrand: process.env.SEED_BRAND === "fog-angels" ? "fog-angels" : "original",
     seedOrganizerEmail: (
       process.env.SEED_ORGANIZER_EMAIL ?? "organizer@localhost"
     ).toLowerCase(),

@@ -24,6 +24,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${base}${path}`, {
     ...init,
     credentials: "include",
+    signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000),
     headers,
   })
   const json = (await res.json().catch(() => null)) as ApiErrorBody | T | null
@@ -35,5 +36,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       body?.error?.message ?? "Something went wrong. Try again.",
     )
   }
+  if (json === null) throw new ApiError(res.status, null, "The service returned an invalid response. Please try again.")
   return json as T
 }

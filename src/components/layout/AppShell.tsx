@@ -4,8 +4,9 @@ import { brand } from "@/config/brand"
 import { Icon } from "@/components/ui/Icon"
 import type { IconName } from "@/components/ui/Icon"
 import { LogoMark } from "@/state/DemoProvider"
+import { BrandAtmosphere } from "@/components/brand/BrandVisuals"
 import { useDemo } from "@/state/demo-context"
-import { demoHref, useDemoBase, useDemoHref } from "@/lib/demo-base"
+import { demoHref, useDemoBase, useDemoHref } from "@/lib/demo-paths"
 
 const TAB_PATHS: { path: string; end?: boolean; label: string; icon: IconName }[] = [
   { path: "/", end: true, label: "Tracker", icon: "map-pin" },
@@ -18,15 +19,15 @@ export function AppShell() {
   const adminTo = useDemoHref("/admin")
   const accountTo = useDemoHref("/account")
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="relative z-10 flex min-h-dvh flex-col">
+      <BrandAtmosphere />
       <BrandBar accountTo={accountTo} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-44 pt-5 sm:px-6 md:pt-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-52 pt-5 sm:px-6 md:pt-8">
         <Outlet />
-        <footer className="mt-16 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs text-faint">
+        <footer className="mt-20 flex flex-wrap items-center justify-center gap-x-2 pb-4 text-center text-xs text-muted">
           <span>
-            Truck Tracker · sales demo — real maps, GPS, push and uploads
-            wait on their contracts. Production V1 is the branded shell and
-            upsells, not a fake live map.
+            {brand.footerLine ??
+              `${brand.productName} · ${brand.bandName} — assistive location when tracking is live. Marshals over the map.`}
           </span>
           <Link
             to="/privacy"
@@ -52,15 +53,21 @@ function BrandBar({ accountTo }: { accountTo: string }) {
     <header className="sticky top-0 z-40 border-b border-line bg-night/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <LogoMark size={38} />
-          <div className="min-w-0 leading-tight">
-            <p className="truncate font-display text-[15px] font-bold tracking-tight">
-              {brand.productName}
+          <LogoMark size={brand.logoWide ? 42 : 38} />
+          {brand.logoWide ? (
+            <p className="min-w-0 truncate font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-gold">
+              {brand.eventLabel}
             </p>
-            <p className="truncate text-xs text-gold">
-              {brand.bandName} · {brand.eventYear}
-            </p>
-          </div>
+          ) : (
+            <div className="min-w-0 leading-tight">
+              <p className="truncate font-display text-[15px] font-bold tracking-tight">
+                {brand.productName}
+              </p>
+              <p className="truncate text-xs text-gold">
+                {brand.bandName} · {brand.eventYear}
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Link

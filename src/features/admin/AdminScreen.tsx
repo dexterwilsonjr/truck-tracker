@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { relativeTime } from "@/utils/time"
 import { CrossSell } from "@/features/upsell/CrossSell"
-import { useDemoHref } from "@/lib/demo-base"
+import { useDemoHref } from "@/lib/demo-paths"
 
 export function AdminScreen() {
   if (!demoAdminEnabled()) {

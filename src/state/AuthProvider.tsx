@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -9,21 +7,10 @@ import {
 import type { ReactNode } from "react"
 
 import { isLiveApi } from "@/lib/live-api"
+import { AuthContext } from "./auth-context"
+import type { AuthContextValue } from "./auth-context"
 import { api } from "@/services/api"
 import type { SessionUser } from "@/types/platform"
-
-interface AuthContextValue {
-  user: SessionUser | null
-  ready: boolean
-  refresh: () => Promise<void>
-  login: (email: string, password: string) => Promise<void>
-  register: (input: { email: string; password: string; name: string }) => Promise<void>
-  logout: () => Promise<void>
-  forgot: (email: string) => Promise<void>
-  reset: (token: string, password: string) => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null)
@@ -41,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    void refresh().catch(() => setReady(true))
+    void Promise.resolve().then(refresh).catch(() => setReady(true))
   }, [refresh])
 
   const value = useMemo<AuthContextValue>(
@@ -85,14 +72,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider")
-  return ctx
-}
-
-export function useOptionalAuth(): AuthContextValue | null {
-  return useContext(AuthContext)
 }

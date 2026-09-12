@@ -1,0 +1,65 @@
+import type { Brand } from "./types.ts"
+
+export const originalBrand: Brand = {
+  id: "original",
+  productName: "Truck Tracker",
+  bandName: "Tobago Carnival",
+  bandSlug: "tobago-carnival",
+  eventYear: 2026,
+  eventLabel: "J'ouvert & Pretty Mas",
+  tagline: "Find the truck. Catch the vibe.",
+  heroTitle: "Find the truck",
+  footerLine:
+    "Truck Tracker · sales demo — real maps, GPS, push and uploads wait on their contracts. Production V1 is the branded shell and upsells, not a fake live map.",
+  logoPlaceholder: {
+    monogram: "TT",
+    caption: "Placeholder mark — swap for the band's logo",
+  },
+  palette: {
+    night: "#070b15",
+    panel: "#0d1424",
+    raised: "#151e33",
+    line: "#23304d",
+    ink: "#f3f5fb",
+    muted: "#98a3ba",
+    faint: "#626f8c",
+    gold: "#eab84c",
+    goldink: "#221703",
+    teal: "#31d6bd",
+    live: "#3ddc97",
+    warn: "#f5a524",
+    sky: "#74b3ff",
+    danger: "#f87171",
+  },
+  contact: {
+    phone: "",
+    whatsapp: "",
+    email: "",
+    instagram: "",
+    website: "",
+  },
+  registrationUrl: "",
+  presentation: {
+    slug: "tobago-carnival",
+    name: "Tobago Carnival",
+    eventYear: 2026,
+    eventLabel: "J'ouvert & Pretty Mas",
+    tagline: "Find the truck. Catch the vibe.",
+    truckName: "Carnival truck",
+    meetup: { lat: 11.182, lng: -60.735, label: "Scarborough — exact meeting point to be confirmed" },
+    updates: [
+      { id: "welcome", title: "Welcome to the road", body: "Find the band truck here when the crew goes live. Follow your marshals if directions on the road differ from the map." },
+      { id: "meetup", title: "Meet-up details are being confirmed", body: "Scarborough is our reference point for this preview. Ask your organizer for the confirmed gathering place and schedule before travelling." },
+    ],
+    guide: {
+      title: "Your day with the band",
+      location: "Scarborough, Tobago — exact spot to be confirmed",
+      schedule: ["J’ouvert — date and line-up time to be confirmed", "Pretty Mas — date and roll-out time to be confirmed"],
+      notes: [
+        "Bring water, comfortable shoes and your booking details.",
+        "Follow the marshals on the road. The map is a guide, not official routing or an emergency service.",
+        "Truck positions come from a crew phone while sharing is active. Check the update age before heading toward the pin.",
+      ],
+    },
+  },
+}

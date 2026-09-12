@@ -81,6 +81,8 @@ export interface SamplePhoto {
   title: string
   /** Index into the placeholder art gradient recipes. */
   variant: number
+  /** Optional real image for branded sample galleries. */
+  src?: string
 }
 
 export interface GalleryPhoto extends SamplePhoto {

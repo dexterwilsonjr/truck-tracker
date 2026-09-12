@@ -28,6 +28,7 @@ export type IconName =
   | "pencil"
   | "bell"
   | "lock"
+  | "users"
 
 export function Icon({
   name,
@@ -187,8 +188,17 @@ function renderPath(name: IconName) {
     case "lock":
       return (
         <>
-          <rect x="5" y="11" width="14" height="10" rx="2" />
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+          <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+        </>
+      )
+    case "users":
+      return (
+        <>
+          <circle cx="9.5" cy="8" r="3.5" />
+          <path d="M3 20.5a6.5 6.5 0 0 1 13 0" />
+          <path d="M16.5 4.8a3.5 3.5 0 0 1 0 6.4" />
+          <path d="M18 14.6a6.5 6.5 0 0 1 3 5.9" />
         </>
       )
   }

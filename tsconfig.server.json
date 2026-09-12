@@ -17,5 +17,5 @@
     "erasableSyntaxOnly": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["server"]
+  "include": ["server", "src/config/brands"]
 }
