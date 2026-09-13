@@ -1,0 +1,22 @@
+{
+  "displayName": "Truck Tracker readiness failing (pool starvation)",
+  "documentation": {
+    "content": "The readiness check is failing. This alert exists because the API once stayed running while refusing to answer: transactions held every pooled connection, so every later request waited behind them. It was found by a load test, not by monitoring.\n\nWhat to do:\n1. Confirm with: curl https://windies-truck-tracker.web.app/api/health/ready\n2. If poolStarved is true, look for a transaction that opens and then calls something needing a second connection. That was the original cause; the pattern is documented in docs/operations.md.\n3. If it is not resolving, route traffic to the previous revision:\n   gcloud run services update-traffic truck-tracker-api --project windies-app --region us-central1 --to-revisions <previous>=100\n\nSee docs/operations.md for the diagnosis query.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Readiness check failed",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"truck-tracker-api\" AND jsonPayload.message=\"Readiness check failed\""
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s",
+    "notificationRateLimit": { "period": "300s" }
+  },
+  "notificationChannels": [],
+  "severity": "CRITICAL"
+}

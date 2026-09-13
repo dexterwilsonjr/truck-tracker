@@ -680,3 +680,84 @@ test('point validation rejects nonsense and clamps accuracy', () => {
   const unitHeading = sanitizePoint({ ...valid, heading: 3599 }, now)
   assert.equal(unitHeading.ok && unitHeading.point.heading, null)
 })
+
+// ---------------------------------------------------------------------------
+// Observability
+//
+// The readiness check exists because a connection-pool deadlock silently took
+// this API down: it stayed running while refusing to answer. These tests prove
+// the check detects that state, which is the only reason to have it.
+// ---------------------------------------------------------------------------
+
+test('readiness reports unhealthy when the pool is starved by abandoned transactions', async () => {
+  const { readiness } = await import("../server/observability/health.ts")
+
+  const healthy = await readiness()
+  assert.equal(healthy.ok, true, "a quiet database must read as ready")
+  assert.equal(healthy.poolStarved, false)
+
+  // Hold connections open inside transactions and do nothing with them. The
+  // pool holds ten, so six is enough to trip the threshold with room for the
+  // probes themselves.
+  const abandoned: Promise<unknown>[] = []
+  for (let i = 0; i < 6; i++) {
+    abandoned.push(
+      sql.begin(async (tx) => {
+        await tx`SELECT 1`
+        await new Promise((resolve) => setTimeout(resolve, 4000))
+      }).catch(() => undefined),
+    )
+  }
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+
+  const starved = await readiness()
+  assert.equal(starved.poolStarved, true, "abandoned transactions must be detected")
+  assert.equal(starved.ok, false, "a starved pool must not report ready")
+  assert.ok(starved.idleInTransaction >= 5, `expected idle transactions, saw ${starved.idleInTransaction}`)
+
+  await Promise.all(abandoned)
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  assert.equal((await readiness()).ok, true, "readiness must recover once the transactions end")
+})
+
+test('the health endpoints report status without leaking connection detail', async () => {
+  const live = await request("/health/live")
+  assert.equal(live.status, 200)
+  const liveBody = await live.json()
+  assert.equal(liveBody.ok, true)
+  assert.equal(typeof liveBody.databaseMs, "number")
+  assert.doesNotMatch(JSON.stringify(liveBody), /postgres|password|6543|pooler|supabase/i)
+
+  const ready = await request("/health/ready")
+  assert.equal(ready.status, 200)
+  assert.equal((await ready.json()).poolStarved, false)
+
+  // The original endpoint stays, because a platform uptime check depends on it.
+  const original = await request("/health")
+  assert.equal(original.status, 200)
+  assert.deepEqual(await original.json(), { ok: true, product: "truck-tracker", version: "1.2.0" })
+})
+
+test('client error reports are accepted, bounded and never echo content back', async () => {
+  const res = await request("/client-errors", "POST", {
+    message: "TypeError: x is not a function",
+    route: "/fog-angels/friends",
+    bandSlug: "fog-angels",
+    stack: "at Foo (app.js:1:1)",
+  })
+  assert.equal(res.status, 202)
+  const body = await res.json()
+  assert.equal(body.ok, true)
+  assert.match(body.correlationId, /^[a-f0-9]{12}$/)
+  assert.doesNotMatch(JSON.stringify(body), /TypeError|fog-angels/)
+
+  assert.equal((await request("/client-errors", "POST", { message: "" })).status, 400)
+  assert.equal((await request("/client-errors", "POST", {})).status, 400)
+  assert.equal((await request("/client-errors", "POST", { message: "x".repeat(600) })).status, 400)
+})
+
+test('no stack trace ever reaches a client', async () => {
+  const res = await request("/definitely-not-a-route")
+  const text = await res.text()
+  assert.doesNotMatch(text, /at .*\(.*:\d+:\d+\)/, "a stack trace must never cross the boundary")
+})

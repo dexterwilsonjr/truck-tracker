@@ -1,0 +1,32 @@
+{
+  "displayName": "Truck Tracker API returning 5xx",
+  "documentation": {
+    "content": "The API is failing requests. Check the Cloud Run logs for the service, filtered to severity>=ERROR, and look for a correlationId to tie a user report to a stack.\n\nIf the readiness endpoint reports poolStarved, the cause is transactions holding connections: see docs/operations.md.\n\nRollback: gcloud run services update-traffic truck-tracker-api --project windies-app --region us-central1 --to-revisions <previous>=100",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "5xx responses over 5 minutes",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"truck-tracker-api\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 5,
+        "duration": "0s",
+        "trigger": { "count": 1 }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "notificationChannels": [],
+  "severity": "ERROR"
+}

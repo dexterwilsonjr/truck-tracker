@@ -19,6 +19,7 @@
     "load:friends": "tsx scripts/load-friends.ts",
     "live:assurance": "node scripts/live-assurance.mjs",
     "live:links": "node scripts/link-audit.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "check": "npm run test && npm run lint",
     "check:ci": "npm run test && npm run lint && npm run build:live",
     "start": "tsx server/index.ts"

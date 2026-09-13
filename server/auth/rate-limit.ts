@@ -35,11 +35,11 @@ export async function rateLimit(
   scope: string,
   account = "",
   limit = 20,
-  options: { client?: boolean } = {},
+  options: { client?: boolean; global?: number } = {},
 ): Promise<void> {
   const buckets: readonly (readonly [string, number])[] = options.client
-    ? [[`${scope}:global`, GLOBAL_LIMIT], [`${scope}:account:${account}`, limit], [`${scope}:client:${clientAddress(c)}`, limit * 5]]
-    : [[`${scope}:global`, GLOBAL_LIMIT], [`${scope}:account:${account}`, limit]]
+    ? [[`${scope}:global`, options.global ?? GLOBAL_LIMIT], [`${scope}:account:${account}`, limit], [`${scope}:client:${clientAddress(c)}`, limit * 5]]
+    : [[`${scope}:global`, options.global ?? GLOBAL_LIMIT], [`${scope}:account:${account}`, limit]]
 
   for (const [key, max] of buckets) {
     const rows = await sql<{ hits: number }[]>`INSERT INTO rate_limits (key, hits, expires_at)

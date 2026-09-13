@@ -7,6 +7,8 @@ import { HTTPException } from "hono/http-exception"
 import { bodyLimit } from "hono/body-limit"
 import { friends } from "./modules/friends/index.ts"
 import { tracker } from "./modules/truck_tracker/index.ts"
+import { clientErrors, health } from "./observability/routes.ts"
+import { captureError, log, newCorrelationId } from "./observability/log.ts"
 
 import { type AuthVariables } from "./auth/routes.ts"
 import { auth } from "./auth/routes.ts"
@@ -59,9 +61,17 @@ app.use("*", async (c, next) => {
   await next()
 })
 app.onError((error, c) => {
-  if (error instanceof HTTPException) return c.json({ error: { code: "request_failed", message: error.message } }, error.status)
-  console.error("API request failed", { path: c.req.path, type: error.name })
-  return c.json({ error: { code: "server_error", message: "Service temporarily unavailable. Please try again." } }, 500)
+  if (error instanceof HTTPException) {
+    // Deliberately not logged here. The request logger below already records
+    // every 4xx with the same path and status, and logging it twice made the
+    // output harder to read for no extra information.
+    return c.json({ error: { code: "request_failed", message: error.message } }, error.status)
+  }
+  // 5xx is an incident: capture the stack and give the user an id they can
+  // quote. The stack stays server-side; the id is what crosses the boundary.
+  const correlationId = newCorrelationId()
+  captureError(error, { where: "request", path: c.req.path, method: c.req.method }, { correlationId, includeStack: true })
+  return c.json({ error: { code: "server_error", message: "Service temporarily unavailable. Please try again.", correlationId } }, 500)
 })
 app.use(
   "*",
@@ -79,7 +89,31 @@ app.use("*", async (c, next) => {
   await next()
 })
 
+/**
+ * One structured line per request.
+ *
+ * Deliberately excludes the query string, which can carry an invite or reset
+ * token, and only records the status for API traffic. Health and error reports
+ * are skipped because they would otherwise dominate the logs.
+ */
+app.use("*", async (c, next) => {
+  const started = Date.now()
+  await next()
+  const path = c.req.path
+  if (path.endsWith("/health") || path.endsWith("/health/live")) return
+  const status = c.res.status
+  const fields = { where: "request", method: c.req.method, path, status, ms: Date.now() - started }
+  if (status >= 500) log.error("Request failed", fields)
+  else if (status >= 400) log.warn("Request rejected", fields)
+  else log.info("Request", fields)
+})
+
 app.get("/health", async (c) => { await sql`SELECT 1`; return c.json({ ok: true, product: "truck-tracker", version: "1.2.0" }) })
+
+// Split health: /health/live for an uptime check, /health/ready for the pool
+// starvation check that catches the silent-death state.
+app.route("/health", health)
+app.route("/client-errors", clientErrors)
 
 app.route("/auth", auth)
 app.route("/", tracker)
