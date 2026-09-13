@@ -38,11 +38,32 @@ interface BandRow {
   ends_at: Date | null
 }
 
+/**
+ * Resolve a band and confirm it is entitled to friend sharing, in one query.
+ *
+ * Entitlement used to be a second round trip through `isLive`. On a deployed
+ * stack a round trip costs roughly 150ms, so folding the check into the band
+ * lookup removes a sixth of the read path's latency for no extra risk: the
+ * entitlement rules are the same ones `entitledModules` applies (active, in
+ * window), just expressed as an EXISTS alongside the band row.
+ */
 async function requireBand(slug: string): Promise<BandRow> {
-  const rows = await sql<BandRow[]>`SELECT id, slug, name, ends_at FROM bands WHERE slug = ${slug}`
+  const rows = await sql<BandRow[]>`
+    SELECT b.id, b.slug, b.name, b.ends_at
+    FROM bands b
+    WHERE b.slug = ${slug}
+      AND EXISTS (
+        SELECT 1 FROM band_entitlements e
+        WHERE e.band_id = b.id AND e.module_code = 'friends' AND e.status = 'active'
+          AND e.starts_at <= now() AND (e.ends_at IS NULL OR e.ends_at > now())
+      )
+  `
   const band = rows[0]
-  if (!band) throw new HTTPException(404, { message: "That band is not on Truck Tracker." })
-  if (!await isLive(band.id, "friends")) {
+  if (!band) {
+    // Distinguish "no such band" from "not entitled" with one cheap follow-up,
+    // so the message stays honest without costing a round trip on the happy path.
+    const exists = await sql<{ id: string }[]>`SELECT id FROM bands WHERE slug = ${slug} LIMIT 1`
+    if (!exists[0]) throw new HTTPException(404, { message: "That band is not on Truck Tracker." })
     throw new HTTPException(403, { message: "Friend sharing is not available for this band." })
   }
   return band
@@ -201,32 +222,50 @@ friends.get("/bands/:slug", async (c) => {
   if (actor instanceof Response) return actor
   const band = await requireBand(c.req.param("slug"))
 
-  const session = await openSession(actor.id, band.id)
+  // Everything below is independent, so it runs concurrently.
+  //
+  // On the deployed stack a round trip costs roughly 150ms, so running these
+  // five sequentially cost about 750ms of wall time on every poll — the single
+  // largest cost in the read path. The pool allows ten connections, so issuing
+  // them together turns that into roughly one round trip.
+  const [session, connectionRows, positions, invites, deviceRows] = await Promise.all([
+    openSession(actor.id, band.id),
+    sql<{
+      id: string
+      status: "accepted" | "blocked"
+      blocked_by: string | null
+      friend_id: string
+      name: string
+    }[]>`
+      SELECT c.id, c.status, c.blocked_by,
+             CASE WHEN c.requester_id = ${actor.id}::uuid THEN c.addressee_id ELSE c.requester_id END AS friend_id,
+             u.name
+      FROM connections c
+      JOIN users u ON u.id = CASE WHEN c.requester_id = ${actor.id}::uuid THEN c.addressee_id ELSE c.requester_id END
+      WHERE c.band_id = ${band.id}::uuid
+        AND (c.requester_id = ${actor.id}::uuid OR c.addressee_id = ${actor.id}::uuid)
+        AND c.status <> 'removed'
+      ORDER BY c.created_at DESC
+    `,
+    visibleFriendPositions(actor.id, band.id),
+    sql<{ id: string; expires_at: Date }[]>`
+      SELECT id, expires_at FROM friend_invites
+      WHERE inviter_id = ${actor.id}::uuid AND band_id = ${band.id}::uuid
+        AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at > now()
+      ORDER BY created_at DESC
+    `,
+    sql<{ id: string; platform: string; app_version: string | null; expires_at: Date; last_seen_at: Date | null }[]>`
+      SELECT id, platform, app_version, expires_at, last_seen_at FROM devices
+      WHERE user_id = ${actor.id}::uuid AND band_id = ${band.id}::uuid
+        AND active AND revoked_at IS NULL AND expires_at > now()
+      ORDER BY created_at DESC
+    `,
+  ])
   const now = Date.now()
 
-  const connectionRows = await sql<{
-    id: string
-    status: "accepted" | "blocked"
-    blocked_by: string | null
-    friend_id: string
-    name: string
-  }[]>`
-    SELECT c.id, c.status, c.blocked_by,
-           CASE WHEN c.requester_id = ${actor.id}::uuid THEN c.addressee_id ELSE c.requester_id END AS friend_id,
-           u.name
-    FROM connections c
-    JOIN users u ON u.id = CASE WHEN c.requester_id = ${actor.id}::uuid THEN c.addressee_id ELSE c.requester_id END
-    WHERE c.band_id = ${band.id}::uuid
-      AND (c.requester_id = ${actor.id}::uuid OR c.addressee_id = ${actor.id}::uuid)
-      AND c.status <> 'removed'
-    ORDER BY c.created_at DESC
-  `
-
-  const positions = await visibleFriendPositions(actor.id, band.id)
   const byUser = new Map(positions.map((row) => [row.user_id, row]))
 
-  const friendViews: FriendView[] = connectionRows.map((row) => {
-    const found = byUser.get(row.friend_id)
+  const friendViews: FriendView[] = connectionRows.map((row) => {    const found = byUser.get(row.friend_id)
     const presenting = found ? positionPayload(found, now) : null
     return {
       connectionId: row.id,
@@ -240,20 +279,6 @@ friends.get("/bands/:slug", async (c) => {
       position: presenting?.position ?? null,
     }
   })
-
-  const invites = await sql<{ id: string; expires_at: Date }[]>`
-    SELECT id, expires_at FROM friend_invites
-    WHERE inviter_id = ${actor.id}::uuid AND band_id = ${band.id}::uuid
-      AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at > now()
-    ORDER BY created_at DESC
-  `
-
-  const deviceRows = await sql<{ id: string; platform: string; app_version: string | null; expires_at: Date; last_seen_at: Date | null }[]>`
-    SELECT id, platform, app_version, expires_at, last_seen_at FROM devices
-    WHERE user_id = ${actor.id}::uuid AND band_id = ${band.id}::uuid
-      AND active AND revoked_at IS NULL AND expires_at > now()
-    ORDER BY created_at DESC
-  `
 
   return c.json({
     sharing: {

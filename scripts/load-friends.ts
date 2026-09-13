@@ -38,10 +38,19 @@ const SLUG = process.env.LOAD_BAND_SLUG ?? "load-band"
 
 const databaseUrl = process.env.DATABASE_URL ?? ""
 const parsed = databaseUrl ? new URL(databaseUrl) : null
-if (!parsed || !["127.0.0.1", "localhost"].includes(parsed.hostname) || !parsed.pathname.endsWith("_test")) {
+const isTestDatabase = Boolean(parsed) && parsed.pathname.endsWith("_test")
+// The point of this script is to measure a real environment once, before a
+// pilot. Refuse a non-test database unless that is stated deliberately, so it
+// can never run against production by accident.
+if (!parsed || (!isTestDatabase && process.env.ALLOW_PRODUCTION_LOAD !== "true")) {
   console.error("Refusing to run: DATABASE_URL must be a localhost database whose name ends in _test.")
+  console.error(`To load test ${parsed?.hostname ?? "a non-test database"} deliberately, set ALLOW_PRODUCTION_LOAD=true.`)
   process.exit(1)
 }
+if (!isTestDatabase) {
+  console.error(`WARNING: loading ${parsed.hostname}${parsed.pathname}. Data will be created in band "${process.env.LOAD_BAND_SLUG ?? "load-band"}" and removed at the end.`)
+}
+const cleanup = process.argv.includes("--cleanup")
 const password = process.env.LOAD_TEST_PASSWORD ?? ""
 if (password.length < 12) {
   console.error("Set LOAD_TEST_PASSWORD to at least 12 characters.")
@@ -179,7 +188,6 @@ function percentile(values: number[], p: number): number {
 }
 
 const connections = await sql<{ used: number }[]>`SELECT count(*)::int AS used FROM pg_stat_activity WHERE datname = current_database()`
-await sql.end({ timeout: 5 })
 
 console.log("\n--- Results ---")
 console.log(`Writes ${writes} (errors ${errors.write}) · Reads ${reads} (errors ${errors.read})`)
@@ -195,4 +203,16 @@ else if (readP95 > budget || writeP95 > budget) console.log(`FAIL: p95 above the
 else console.log(`PASS: p95 within the ${budget}ms budget with no request errors.`)
 
 console.log(`\nLoad data is left in band "${SLUG}" for inspection. Remove it with:`)
+console.log(`  DELETE FROM users WHERE email LIKE 'load%@load.test';`)
 console.log(`  DELETE FROM bands WHERE slug = '${SLUG}';`)
+
+if (cleanup) {
+  // Deleting the band cascades to its trucks, entitlements, content and every
+  // friend row. The users are separate, so they are removed explicitly. This
+  // matters on a real environment: a leftover "Load test band" would otherwise
+  // appear in the public band list.
+  await sql`DELETE FROM users WHERE email LIKE 'load%@load.test'`
+  await sql`DELETE FROM bands WHERE slug = ${SLUG}`
+  console.log(`Cleaned up band "${SLUG}" and its load users.`)
+}
+await sql.end({ timeout: 5 })

@@ -129,41 +129,46 @@ auth.post("/change-password", async c => {
   return signIn(c, user.id, hash)
 })
 
+/**
+ * Load the signed-in user and their band roles in a single query.
+ *
+ * This ran as two sequential queries, and `requireUser` adds the session lookup
+ * before it. On a deployed stack a round trip is roughly 150ms, so three
+ * sequential round trips cost about 450ms of latency before a handler does any
+ * work of its own — which every authenticated route paid. Aggregating the roles
+ * here removes one of them without changing the shape of the result.
+ */
 export async function loadSessionUser(
   userId: string,
 ): Promise<SessionUser | null> {
-  const users = await sql<
-    {
-      id: string
-      email: string
-      name: string
-      platform_role: PlatformRole
-      must_reset_password: boolean
-    }[]
-  >`
-    SELECT id, email, name, platform_role, must_reset_password
-    FROM users WHERE id = ${userId}::uuid
+  const rows = await sql<{
+    id: string
+    email: string
+    name: string
+    platform_role: PlatformRole
+    must_reset_password: boolean
+    band_roles: { bandId: string; slug: string; role: BandMemberRole }[] | null
+  }[]>`
+    SELECT u.id, u.email, u.name, u.platform_role, u.must_reset_password,
+           (
+             SELECT coalesce(
+               json_agg(json_build_object('bandId', bm.band_id, 'slug', b.slug, 'role', bm.role)),
+               '[]'::json
+             )
+             FROM band_members bm
+             JOIN bands b ON b.id = bm.band_id
+             WHERE bm.user_id = u.id
+           ) AS band_roles
+    FROM users u WHERE u.id = ${userId}::uuid
   `
-  const user = users[0]
+  const user = rows[0]
   if (!user) return null
-  const members = await sql<
-    { band_id: string; slug: string; role: BandMemberRole }[]
-  >`
-    SELECT bm.band_id, b.slug, bm.role
-    FROM band_members bm
-    JOIN bands b ON b.id = bm.band_id
-    WHERE bm.user_id = ${user.id}::uuid
-  `
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     platformRole: user.platform_role,
-    bandRoles: members.map((m) => ({
-      bandId: m.band_id,
-      slug: m.slug,
-      role: m.role,
-    })),
+    bandRoles: user.band_roles ?? [],
     mustResetPassword: user.must_reset_password,
   }
 }
