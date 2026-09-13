@@ -12,6 +12,11 @@ export function PrivacyScreen() {
       <h1 className="font-display text-3xl font-bold tracking-tight">Privacy</h1>
       <Card className="space-y-4 p-5 text-[15px] leading-relaxed text-muted">
         <p>
+          This app is operated by <strong className="font-semibold text-ink">Windies Media Ltd.</strong>{" "}
+          Questions, or a request to see or delete what we hold about you, go to your band
+          organizer or the platform admin contact on the Account screen.
+        </p>
+        <p>
           Password accounts store an email, a name, and a password hash — never
           the password itself. Reset links expire in an hour. Sessions live in
           an httpOnly cookie.

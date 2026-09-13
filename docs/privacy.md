@@ -2,6 +2,22 @@
 
 This is the product privacy baseline. Counsel should sign a band-specific policy before go-live. Linked from login, this app’s `/privacy` screen, and (later) location, face opt-in, and print.
 
+## Who operates this
+
+The platform is operated by **Windies Media Ltd.**, which is the data controller for the
+platform accounts and for the public event content it hosts on a band's behalf.
+
+To confirm before go-live, from the company registry: registered number, registered office,
+and the jurisdiction whose data protection law applies. A privacy policy that does not
+identify its controller or provide a contact route is incomplete.
+
+Where friend location sharing is used, the band whose event it is also has obligations, and
+a band-specific policy should name them. This document is the platform baseline, not the
+band's policy.
+
+For any request under this policy — access, correction, deletion, or a complaint — contact
+`[PRIVACY CONTACT]`, which must be a monitored address before the pilot.
+
 ## Accounts
 
 - Email, display name, **password hash** (scrypt). We never store the password.
